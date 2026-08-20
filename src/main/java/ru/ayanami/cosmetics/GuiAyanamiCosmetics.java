@@ -33,6 +33,12 @@ public class GuiAyanamiCosmetics extends GuiScreen {
     private static final int ID_KEYBINDS = 3;
     private static final int ID_DONE = 4;
     private static final int ID_APPLY = 5;
+    private static final int ID_ADD_STACK = 6;
+    private static final int ID_REMOVE_STACK = 7;
+    private static final int ID_FAVORITE = 8;
+    private static final int ID_MOVE_UP = 9;
+    private static final int ID_MOVE_DOWN = 13;
+    private static final int ID_SAVE_SERVER = 14;
     private static final int ID_FILTER_ALL = 10;
     private static final int ID_FILTER_ZIP = 11;
     private static final int ID_FILTER_FOLDER = 12;
@@ -136,15 +142,25 @@ public class GuiAyanamiCosmetics extends GuiScreen {
                 ID_TOGGLE,
                 this.panelX + 12,
                 btnY,
-                88,
+                78,
                 18,
                 on ? tr("gui.ayanamicosmetics.disable", "Override OFF") : tr("gui.ayanamicosmetics.enable", "Override ON"),
                 on ? GuiStyledButton.Style.DANGER : GuiStyledButton.Style.PRIMARY
         ));
-        this.buttonList.add(new GuiStyledButton(ID_APPLY, this.panelX + 106, btnY, 70, 18, tr("gui.ayanamicosmetics.apply", "Apply"), GuiStyledButton.Style.PRIMARY));
-        this.buttonList.add(new GuiStyledButton(ID_RELOAD, this.panelX + 182, btnY, 60, 18, tr("gui.ayanamicosmetics.reload_short", "Reload"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_KEYBINDS, this.panelX + 248, btnY, 50, 18, tr("gui.ayanamicosmetics.keybinds", "Keys"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_SAVE_SERVER, this.panelX + 96, btnY, 78, 18, tr("gui.ayanamicosmetics.save_server", "Save IP"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_RELOAD, this.panelX + 180, btnY, 54, 18, tr("gui.ayanamicosmetics.reload_short", "Reload"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_KEYBINDS, this.panelX + 240, btnY, 50, 18, tr("gui.ayanamicosmetics.keybinds", "Keys"), GuiStyledButton.Style.SECONDARY));
         this.buttonList.add(new GuiStyledButton(ID_DONE, this.panelX + this.panelW - 62, btnY, 50, 18, tr("gui.ayanamicosmetics.done", "Done"), GuiStyledButton.Style.SECONDARY));
+
+        // Preview action buttons
+        int px = this.previewX + 8;
+        int py = this.previewY + this.previewH - 52;
+        this.buttonList.add(new GuiStyledButton(ID_ADD_STACK, px, py, 64, 14, tr("gui.ayanamicosmetics.add_stack", "+ Stack"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_REMOVE_STACK, px + 68, py, 64, 14, tr("gui.ayanamicosmetics.rem_stack", "- Stack"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_FAVORITE, px, py + 16, 42, 14, tr("gui.ayanamicosmetics.favorite", "Star"), GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_MOVE_UP, px + 46, py + 16, 28, 14, "Up", GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_MOVE_DOWN, px + 78, py + 16, 28, 14, "Dn", GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_APPLY, px + 110, py + 16, 32, 14, "OK", GuiStyledButton.Style.PRIMARY));
 
         refreshFilterChips();
         rebuildFilteredList();
@@ -268,6 +284,43 @@ public class GuiAyanamiCosmetics extends GuiScreen {
                     }
                 }
                 this.initGui();
+                break;
+            case ID_ADD_STACK:
+                if (this.previewPackName != null && !this.previewPackName.isEmpty()) {
+                    ResourcePackManager.addPackToStack(this.previewPackName);
+                }
+                this.initGui();
+                break;
+            case ID_REMOVE_STACK:
+                if (this.previewPackName != null && !this.previewPackName.isEmpty()) {
+                    ResourcePackManager.removePackFromStack(this.previewPackName);
+                }
+                this.initGui();
+                break;
+            case ID_FAVORITE:
+                if (this.previewPackName != null && !this.previewPackName.isEmpty()) {
+                    Config.toggleFavorite(this.previewPackName);
+                    this.allPacks = ResourcePackManager.listAvailablePackNames();
+                    rebuildFilteredList();
+                }
+                this.initGui();
+                break;
+            case ID_MOVE_UP:
+                if (this.previewPackName != null) {
+                    Config.moveActivePack(this.previewPackName, -1);
+                    ResourcePackManager.reloadResourcesFromGui();
+                }
+                this.initGui();
+                break;
+            case ID_MOVE_DOWN:
+                if (this.previewPackName != null) {
+                    Config.moveActivePack(this.previewPackName, 1);
+                    ResourcePackManager.reloadResourcesFromGui();
+                }
+                this.initGui();
+                break;
+            case ID_SAVE_SERVER:
+                ResourcePackManager.saveProfileForCurrentServer();
                 break;
             case ID_RELOAD:
                 ResourcePackManager.reloadResourcesFromGui();
@@ -460,8 +513,9 @@ public class GuiAyanamiCosmetics extends GuiScreen {
     }
 
     private void drawPackCard(int x, int y, String name, boolean hovered) {
-        boolean selected = name.equalsIgnoreCase(Config.getSelectedPackName());
+        boolean selected = name.equalsIgnoreCase(Config.getSelectedPackName()) || Config.isActivePack(name);
         boolean previewing = name.equalsIgnoreCase(this.previewPackName);
+        boolean favorite = Config.isFavorite(name);
         int border;
         if (selected) {
             border = 0xFF6F98FF;
@@ -473,12 +527,14 @@ public class GuiAyanamiCosmetics extends GuiScreen {
 
         drawSoftPanel(x, y, CARD_W, CARD_H, 0xFF1A1A20, border);
 
-        // Icon area
         drawRect(x + 8, y + 8, x + CARD_W - 8, y + 62, 0xFF0E0E12);
         File file = ResourcePackManager.resolvePackFileByName(name);
         String badge = (file != null && file.isDirectory()) ? "DIR" : "ZIP";
         drawRect(x + CARD_W - 28, y + 10, x + CARD_W - 10, y + 20, selected ? 0xFF355FD4 : 0xFF2F2F38);
         this.fontRenderer.drawString(badge, x + CARD_W - 26, y + 12, 0xFFD0D4DE, false);
+        if (favorite) {
+            this.fontRenderer.drawString("*", x + 10, y + 10, 0xFFFFD76A, false);
+        }
 
         // Mini pack icon if this is the preview pack and texture exists
         if (previewing && this.previewLocation != null) {
@@ -506,33 +562,51 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         String title = this.previewPackName == null || this.previewPackName.isEmpty()
                 ? tr("gui.ayanamicosmetics.pack_missing", "<not selected>")
                 : this.previewPackName;
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.preview", "Preview"), this.previewX + 8, this.previewY + 8, 0xFF8B8E98, false);
+        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.preview", "Preview"), this.previewX + 8, this.previewY + 6, 0xFF8B8E98, false);
 
-        // Large icon
-        drawRect(this.previewX + 20, this.previewY + 24, this.previewX + this.previewW - 20, this.previewY + 110, 0xFF0C0C10);
+        drawRect(this.previewX + 28, this.previewY + 18, this.previewX + this.previewW - 28, this.previewY + 70, 0xFF0C0C10);
         if (this.previewLocation != null) {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             this.mc.getTextureManager().bindTexture(this.previewLocation);
-            drawModalRectWithCustomSizedTexture(this.previewX + 35, this.previewY + 34, 0, 0, 80, 66, 80, 66);
+            drawModalRectWithCustomSizedTexture(this.previewX + 43, this.previewY + 24, 0, 0, 64, 40, 64, 40);
         } else {
             String noIcon = tr("gui.ayanamicosmetics.no_icon", "No pack.png");
             int w = this.fontRenderer.getStringWidth(noIcon);
-            this.fontRenderer.drawString(noIcon, this.previewX + (this.previewW - w) / 2, this.previewY + 60, 0xFF6A6A76, false);
+            this.fontRenderer.drawString(noIcon, this.previewX + (this.previewW - w) / 2, this.previewY + 38, 0xFF6A6A76, false);
         }
 
-        List<String> lines = this.fontRenderer.listFormattedStringToWidth(title, this.previewW - 16);
-        int textY = this.previewY + 118;
-        for (int i = 0; i < Math.min(lines.size(), 2); i++) {
-            this.fontRenderer.drawString(lines.get(i), this.previewX + 8, textY + i * 10, 0xFFF0F2F8, false);
+        String shortTitle = title;
+        if (this.fontRenderer.getStringWidth(shortTitle) > this.previewW - 16) {
+            while (this.fontRenderer.getStringWidth(shortTitle + "..") > this.previewW - 16 && shortTitle.length() > 4) {
+                shortTitle = shortTitle.substring(0, shortTitle.length() - 1);
+            }
+            shortTitle = shortTitle + "..";
         }
+        this.fontRenderer.drawString(shortTitle, this.previewX + 8, this.previewY + 76, 0xFFF0F2F8, false);
 
         File file = ResourcePackManager.resolvePackFileByName(this.previewPackName);
         String type = file == null ? "?" : (file.isDirectory() ? "Folder" : "ZIP");
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.type", "Type:") + " " + type, this.previewX + 8, this.previewY + this.previewH - 36, 0xFFA0A4B0, false);
+        boolean fav = this.previewPackName != null && Config.isFavorite(this.previewPackName);
+        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.type", "Type:") + " " + type + (fav ? " *" : ""), this.previewX + 8, this.previewY + 88, 0xFFA0A4B0, false);
 
-        boolean isSelected = this.previewPackName != null && this.previewPackName.equalsIgnoreCase(Config.getSelectedPackName());
-        String sel = isSelected ? tr("gui.ayanamicosmetics.selected_yes", "Selected for override") : tr("gui.ayanamicosmetics.selected_no", "Click Apply to use");
-        this.fontRenderer.drawString(sel, this.previewX + 8, this.previewY + this.previewH - 22, isSelected ? 0xFF8DFFB0 : 0xFFFFC978, false);
+        String host = ResourcePackManager.getCurrentServerHost();
+        String hostLine = host == null ? tr("gui.ayanamicosmetics.no_server", "Not on a server") : ("IP: " + host);
+        this.fontRenderer.drawString(hostLine, this.previewX + 8, this.previewY + 100, 0xFF8DFFB0, false);
+
+        java.util.List<String> stack = Config.getActivePacks();
+        String stackLabel = tr("gui.ayanamicosmetics.stack", "Stack:") + " " + stack.size();
+        this.fontRenderer.drawString(stackLabel, this.previewX + 8, this.previewY + 112, 0xFFB8CCFF, false);
+        int sy = this.previewY + 124;
+        for (int i = 0; i < Math.min(stack.size(), 2); i++) {
+            String n = (i + 1) + ". " + stack.get(i);
+            if (this.fontRenderer.getStringWidth(n) > this.previewW - 16) {
+                while (this.fontRenderer.getStringWidth(n + "..") > this.previewW - 16 && n.length() > 4) {
+                    n = n.substring(0, n.length() - 1);
+                }
+                n = n + "..";
+            }
+            this.fontRenderer.drawString(n, this.previewX + 8, sy + i * 10, 0xFFC8CAD2, false);
+        }
     }
 
     private void drawSoftPanel(int x, int y, int w, int h, int fill, int border) {

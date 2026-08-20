@@ -9,14 +9,11 @@ import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-/**
- * Keeps the override wrapper installed across reconnects, F3+T / F3+A reloads,
- * and server resource-pack re-downloads without blocking vanilla pack confirmation.
- */
 @SideOnly(Side.CLIENT)
 public class ClientEvents {
 
     private int tickCounter;
+    private int profileDelayTicks;
 
     public static void init() {
         MinecraftForge.EVENT_BUS.register(new ClientEvents());
@@ -30,7 +27,14 @@ public class ClientEvents {
         if (ResourcePackManager.isApplying()) {
             return;
         }
-        // Throttle reflection checks a bit; still responsive after pack changes.
+
+        if (profileDelayTicks > 0) {
+            profileDelayTicks--;
+            if (profileDelayTicks == 0) {
+                ResourcePackManager.applyServerProfileIfAny();
+            }
+        }
+
         tickCounter++;
         if (tickCounter < 10) {
             return;
@@ -42,10 +46,13 @@ public class ClientEvents {
     @SubscribeEvent
     public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
         AyanamiCosmetics.LOGGER.info("[AyanamiCosmetics] Client connected; waiting for server resource pack if any");
-        ResourcePackManager.ensureSelectedPackExists();
+        // Delay so ServerData / server RP handshake can settle.
+        profileDelayTicks = 40;
         Minecraft.getMinecraft().addScheduledTask(new Runnable() {
             @Override
             public void run() {
+                ResourcePackManager.ensureSelectedPackExists();
+                ResourcePackManager.applyServerProfileIfAny();
                 ResourcePackManager.syncOverrideState(true);
             }
         });
@@ -54,11 +61,11 @@ public class ClientEvents {
     @SubscribeEvent
     public void onClientDisconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         ResourcePackManager.onClientDisconnect();
+        profileDelayTicks = 0;
     }
 
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        // After working-resource-pack / download GUIs close, re-assert override.
         if (event.getGui() == null && Config.isOverrideEnabled()) {
             Minecraft.getMinecraft().addScheduledTask(new Runnable() {
                 @Override

@@ -1,6 +1,7 @@
 package ru.ayanami.cosmetics;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.resources.FileResourcePack;
 import net.minecraft.client.resources.FolderResourcePack;
 import net.minecraft.client.resources.IResourcePack;
@@ -14,20 +15,14 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipFile;
 
 /**
- * Loads the selected local cosmetic pack (ZIP or folder) and applies it as a
- * higher-priority layer over the server resource pack via the standard ResourceManager.
- * <p>
- * In Minecraft 1.12.2 {@code Minecraft.refreshResources()} builds the pack list as:
- * default packs → selected repository entries → server resource pack (last = highest priority).
- * Because the server pack is last, a normal selected pack cannot override it.
- * <p>
- * Reflection writes {@link ResourcePackOverride} into {@code ResourcePackRepository.serverResourcePack}
- * without touching download/accept of the server pack.
+ * Loads one or more local packs and stacks them over the server resource pack.
+ * Also applies per-server IP profiles on connect.
  */
 public final class ResourcePackManager {
 
@@ -43,13 +38,14 @@ public final class ResourcePackManager {
     private static boolean fieldLookupFailed;
 
     private static IResourcePack originalServerPack;
-    private static IResourcePack cachedUserPack;
-    private static String cachedUserPackName;
-    private static long cachedUserPackStamp = Long.MIN_VALUE;
+    private static List<IResourcePack> cachedOverridePacks = new ArrayList<IResourcePack>();
+    private static List<String> cachedOverrideNames = new ArrayList<String>();
+    private static String cachedStackKey = "";
 
     private static boolean applying;
     private static boolean serverPackSeen;
     private static boolean serverPackLoadedLogged;
+    private static String lastAppliedHost = "";
 
     private ResourcePackManager() {
     }
@@ -85,17 +81,66 @@ public final class ResourcePackManager {
         return new File(Minecraft.getMinecraft().mcDataDir, "resourcepacks");
     }
 
+    @Nullable
+    public static String getCurrentServerHost() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null) {
+            return null;
+        }
+        ServerData data = mc.getCurrentServerData();
+        if (data != null && data.serverIP != null && !data.serverIP.trim().isEmpty()) {
+            return Config.normalizeHost(data.serverIP);
+        }
+        if (mc.isSingleplayer()) {
+            return "singleplayer";
+        }
+        return null;
+    }
+
     /**
-     * Resolves the configured pack name to an existing ZIP or folder (case-insensitive).
+     * Apply saved profile for the current server IP (packs + override flag).
      */
+    public static synchronized void applyServerProfileIfAny() {
+        if (!Config.isAutoApplyServerProfile()) {
+            return;
+        }
+        String host = getCurrentServerHost();
+        if (host == null || host.isEmpty()) {
+            return;
+        }
+        Config.ServerProfile profile = Config.getServerProfile(host);
+        if (profile == null) {
+            LOGGER.info("[AyanamiCosmetics] No saved profile for server {}", host);
+            return;
+        }
+        if (host.equals(lastAppliedHost)
+                && profile.packs.equals(Config.getActivePacks())
+                && profile.overrideEnabled == Config.isOverrideEnabled()) {
+            return;
+        }
+        LOGGER.info("[AyanamiCosmetics] Applying server profile for {}: packs={}, override={}",
+                host, profile.packs, profile.overrideEnabled);
+        Config.setActivePacks(profile.packs);
+        Config.setOverrideEnabled(profile.overrideEnabled);
+        lastAppliedHost = host;
+        clearPackCache();
+        syncOverrideState(true);
+    }
+
+    public static synchronized void saveProfileForCurrentServer() {
+        String host = getCurrentServerHost();
+        if (host == null || host.isEmpty()) {
+            LOGGER.warn("[AyanamiCosmetics] Cannot save profile: not connected to a server");
+            return;
+        }
+        Config.saveServerProfile(host, Config.getActivePacks(), Config.isOverrideEnabled());
+    }
+
     @Nullable
     public static File resolvePackFileByName(@Nullable String name) {
         return findPackFile(name);
     }
 
-    /**
-     * Creates a temporary IResourcePack instance for previews (not cached as active override).
-     */
     @Nullable
     public static IResourcePack createPackInstance(@Nullable String name) {
         File packFile = findPackFile(name);
@@ -134,7 +179,6 @@ public final class ResourcePackManager {
             return direct;
         }
 
-        // Case-insensitive match against ZIP files and folders.
         File[] files = dir.listFiles();
         if (files == null) {
             return null;
@@ -147,20 +191,10 @@ public final class ResourcePackManager {
             }
         }
 
-        // Allow selecting "Name" when only "Name.zip" exists, and vice versa.
         if (!wanted.toLowerCase(Locale.ROOT).endsWith(".zip")) {
             File zip = new File(dir, wanted + ".zip");
             if (isValidPackPath(zip)) {
                 return zip;
-            }
-            for (int i = 0; i < files.length; i++) {
-                File file = files[i];
-                if (file.isFile()
-                        && file.getName().toLowerCase(Locale.ROOT).endsWith(".zip")
-                        && file.getName().regionMatches(true, 0, wanted, 0, wanted.length())
-                        && file.getName().length() == wanted.length() + 4) {
-                    return file;
-                }
             }
         } else {
             String withoutZip = wanted.substring(0, wanted.length() - 4);
@@ -182,34 +216,29 @@ public final class ResourcePackManager {
         return file.isDirectory();
     }
 
-    /**
-     * If configured pack is missing/empty, pick the first available pack from resourcepacks/
-     * (any ZIP or folder — no fixed name required).
-     */
     public static void ensureSelectedPackExists() {
-        String configured = Config.getSelectedPackName();
-        if (configured != null && !configured.isEmpty()) {
-            File current = findPackFile(configured);
-            if (current != null) {
-                if (!current.getName().equals(configured)) {
-                    Config.setSelectedPackName(current.getName());
-                }
-                return;
+        List<String> active = new ArrayList<String>(Config.getActivePacks());
+        List<String> valid = new ArrayList<String>();
+        for (int i = 0; i < active.size(); i++) {
+            File file = findPackFile(active.get(i));
+            if (file != null) {
+                valid.add(file.getName());
             }
         }
-
+        if (!valid.equals(active)) {
+            Config.setActivePacks(valid);
+        }
+        if (!Config.getActivePacks().isEmpty()) {
+            return;
+        }
         List<String> available = listAvailablePackNames();
         if (!available.isEmpty()) {
-            String first = available.get(0);
-            if (!first.equals(Config.getSelectedPackName())) {
-                LOGGER.info("[AyanamiCosmetics] Auto-selected available pack: {}", first);
-                Config.setSelectedPackName(first);
-            }
-        } else if (configured != null && !configured.isEmpty()) {
-            LOGGER.warn("[AyanamiCosmetics] Configured pack not found and resourcepacks/ is empty: {}", configured);
+            Config.setActivePacks(Collections.singletonList(available.get(0)));
+            LOGGER.info("[AyanamiCosmetics] Auto-selected available pack: {}", available.get(0));
         }
     }
 
+    /** Favorites first, then alphabetical. */
     public static List<String> listAvailablePackNames() {
         File dir = getResourcePacksDirectory();
         if (!dir.exists() || !dir.isDirectory()) {
@@ -225,73 +254,87 @@ public final class ResourcePackManager {
             if (file.isFile() && file.getName().toLowerCase(Locale.ROOT).endsWith(".zip")) {
                 names.add(file.getName());
             } else if (file.isDirectory() && !file.getName().startsWith(".")) {
-                // Folder resource packs (common when users extract ZIPs).
                 names.add(file.getName());
             }
         }
-        Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+        Collections.sort(names, new Comparator<String>() {
+            @Override
+            public int compare(String a, String b) {
+                boolean fa = Config.isFavorite(a);
+                boolean fb = Config.isFavorite(b);
+                if (fa != fb) {
+                    return fa ? -1 : 1;
+                }
+                return String.CASE_INSENSITIVE_ORDER.compare(a, b);
+            }
+        });
         return names;
     }
 
-    @Nullable
-    public static IResourcePack getActiveUserPack() {
-        return loadUserPack(false);
+    private static void clearPackCache() {
+        cachedOverridePacks = new ArrayList<IResourcePack>();
+        cachedOverrideNames = new ArrayList<String>();
+        cachedStackKey = "";
     }
 
-    @Nullable
-    public static synchronized IResourcePack loadUserPack(boolean forceReload) {
+    private static String buildStackKey(List<String> names) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < names.size(); i++) {
+            if (i > 0) {
+                sb.append('|');
+            }
+            File f = findPackFile(names.get(i));
+            sb.append(names.get(i));
+            if (f != null) {
+                sb.append('@').append(f.lastModified());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Loads all active packs in priority order. Returns empty list if none valid.
+     */
+    public static synchronized List<IResourcePack> loadActiveOverridePacks(boolean forceReload) {
         ensureSelectedPackExists();
-        File packFile = findPackFile(Config.getSelectedPackName());
-        String name = Config.getSelectedPackName();
-
-        if (packFile == null) {
-            cachedUserPack = null;
-            cachedUserPackName = null;
-            cachedUserPackStamp = Long.MIN_VALUE;
-            LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: file not found ({})", name);
-            return null;
+        List<String> names = new ArrayList<String>(Config.getActivePacks());
+        String key = buildStackKey(names);
+        if (!forceReload && key.equals(cachedStackKey) && !cachedOverridePacks.isEmpty()) {
+            return cachedOverridePacks;
         }
 
-        long stamp = packFile.isDirectory() ? packFile.lastModified() : packFile.lastModified();
-        if (!forceReload
-                && cachedUserPack != null
-                && packFile.getName().equals(cachedUserPackName)
-                && stamp == cachedUserPackStamp) {
-            return cachedUserPack;
-        }
-
-        String validationError = validatePack(packFile);
-        if (validationError != null) {
-            cachedUserPack = null;
-            cachedUserPackName = null;
-            cachedUserPackStamp = Long.MIN_VALUE;
-            LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: {}", validationError);
-            return null;
-        }
-
-        try {
-            IResourcePack pack;
-            if (packFile.isDirectory()) {
-                pack = new FolderResourcePack(packFile);
-            } else {
-                pack = new FileResourcePack(packFile);
+        List<IResourcePack> packs = new ArrayList<IResourcePack>();
+        List<String> resolvedNames = new ArrayList<String>();
+        for (int i = 0; i < names.size(); i++) {
+            File packFile = findPackFile(names.get(i));
+            if (packFile == null) {
+                LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: file not found ({})", names.get(i));
+                continue;
             }
-            pack.getResourceDomains();
-            cachedUserPack = pack;
-            cachedUserPackName = packFile.getName();
-            cachedUserPackStamp = stamp;
-            if (!packFile.getName().equals(Config.getSelectedPackName())) {
-                Config.setSelectedPackName(packFile.getName());
+            String validationError = validatePack(packFile);
+            if (validationError != null) {
+                LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: {}", validationError);
+                continue;
             }
-            LOGGER.info("[AyanamiCosmetics] User resource pack selected: {}", packFile.getName());
-            return pack;
-        } catch (Exception e) {
-            cachedUserPack = null;
-            cachedUserPackName = null;
-            cachedUserPackStamp = Long.MIN_VALUE;
-            LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: {}", e.toString());
-            return null;
+            try {
+                IResourcePack pack = packFile.isDirectory()
+                        ? new FolderResourcePack(packFile)
+                        : new FileResourcePack(packFile);
+                pack.getResourceDomains();
+                packs.add(pack);
+                resolvedNames.add(packFile.getName());
+                LOGGER.info("[AyanamiCosmetics] User resource pack selected: {}", packFile.getName());
+            } catch (Exception e) {
+                LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: {}", e.toString());
+            }
         }
+        cachedOverridePacks = packs;
+        cachedOverrideNames = resolvedNames;
+        cachedStackKey = key;
+        if (!resolvedNames.equals(names)) {
+            Config.setActivePacks(resolvedNames);
+        }
+        return packs;
     }
 
     @Nullable
@@ -327,9 +370,6 @@ public final class ResourcePackManager {
             }
             if (!hasAssets && !hasMcmeta) {
                 return "invalid structure (missing assets/ and pack.mcmeta) (" + packFile.getName() + ")";
-            }
-            if (!hasMcmeta) {
-                LOGGER.warn("[AyanamiCosmetics] Resource pack {} has no pack.mcmeta; continuing anyway", packFile.getName());
             }
             return null;
         } catch (IOException e) {
@@ -389,8 +429,8 @@ public final class ResourcePackManager {
             return;
         }
 
-        IResourcePack userPack = loadUserPack(false);
-        if (userPack == null) {
+        List<IResourcePack> userPacks = loadActiveOverridePacks(false);
+        if (userPacks.isEmpty()) {
             if (current instanceof ResourcePackOverride) {
                 restoreOriginalServerPack(repository, reloadResources);
             }
@@ -405,15 +445,15 @@ public final class ResourcePackManager {
         boolean needsApply = !(current instanceof ResourcePackOverride);
         if (current instanceof ResourcePackOverride) {
             ResourcePackOverride existing = (ResourcePackOverride) current;
-            if (existing.getOverridePack() != userPack
-                    || existing.getBasePack() != base
-                    || !Config.getSelectedPackName().equals(existing.getOverrideName())) {
+            if (existing.getBasePack() != base
+                    || !existing.getOverrideNames().equals(cachedOverrideNames)
+                    || existing.getOverridePacks().size() != userPacks.size()) {
                 needsApply = true;
             }
         }
 
         if (needsApply) {
-            applyOverride(repository, userPack, base, reloadResources);
+            applyOverride(repository, userPacks, cachedOverrideNames, base, reloadResources);
         }
     }
 
@@ -427,8 +467,8 @@ public final class ResourcePackManager {
         return pack;
     }
 
-    private static void applyOverride(ResourcePackRepository repository, IResourcePack userPack, IResourcePack basePack, boolean reloadResources) {
-        ResourcePackOverride wrapper = new ResourcePackOverride(userPack, basePack, Config.getSelectedPackName());
+    private static void applyOverride(ResourcePackRepository repository, List<IResourcePack> userPacks, List<String> names, IResourcePack basePack, boolean reloadResources) {
+        ResourcePackOverride wrapper = new ResourcePackOverride(userPacks, names, basePack);
         LOGGER.info("[AyanamiCosmetics] Applying user override");
         if (!setServerPackInstance(repository, wrapper)) {
             LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: could not install override wrapper via reflection");
@@ -463,22 +503,40 @@ public final class ResourcePackManager {
         syncOverrideState(true);
     }
 
+    public static synchronized void toggleOverride() {
+        setOverrideEnabled(!Config.isOverrideEnabled());
+    }
+
     public static synchronized void selectPack(String packName) {
         Config.setSelectedPackName(packName);
-        cachedUserPack = null;
-        cachedUserPackName = null;
-        cachedUserPackStamp = Long.MIN_VALUE;
-        LOGGER.info("[AyanamiCosmetics] User resource pack selected: {}", Config.getSelectedPackName());
+        clearPackCache();
+        LOGGER.info("[AyanamiCosmetics] User resource pack selected: {}", packName);
+        if (Config.isOverrideEnabled()) {
+            syncOverrideState(true);
+        }
+    }
+
+    public static synchronized void addPackToStack(String packName) {
+        Config.addActivePack(packName);
+        clearPackCache();
+        LOGGER.info("[AyanamiCosmetics] Added pack to stack: {}", packName);
+        if (Config.isOverrideEnabled()) {
+            syncOverrideState(true);
+        }
+    }
+
+    public static synchronized void removePackFromStack(String packName) {
+        Config.removeActivePack(packName);
+        clearPackCache();
+        LOGGER.info("[AyanamiCosmetics] Removed pack from stack: {}", packName);
         if (Config.isOverrideEnabled()) {
             syncOverrideState(true);
         }
     }
 
     public static synchronized void reloadResourcesFromGui() {
-        cachedUserPack = null;
-        cachedUserPackName = null;
-        cachedUserPackStamp = Long.MIN_VALUE;
-        loadUserPack(true);
+        clearPackCache();
+        loadActiveOverridePacks(true);
         syncOverrideState(true);
     }
 
@@ -533,34 +591,16 @@ public final class ResourcePackManager {
             return serverPackField;
         } catch (Exception primary) {
             for (int i = 0; i < SERVER_PACK_FIELD_NAMES.length; i++) {
-                String name = SERVER_PACK_FIELD_NAMES[i];
                 try {
-                    Field field = ResourcePackRepository.class.getDeclaredField(name);
+                    Field field = ResourcePackRepository.class.getDeclaredField(SERVER_PACK_FIELD_NAMES[i]);
                     field.setAccessible(true);
                     serverPackField = field;
                     return serverPackField;
                 } catch (Exception ignored) {
                 }
             }
-            try {
-                ResourcePackRepository sampleRepo = Minecraft.getMinecraft().getResourcePackRepository();
-                IResourcePack current = sampleRepo.getServerResourcePack();
-                Field[] fields = ResourcePackRepository.class.getDeclaredFields();
-                for (int i = 0; i < fields.length; i++) {
-                    Field field = fields[i];
-                    if (IResourcePack.class.isAssignableFrom(field.getType())) {
-                        field.setAccessible(true);
-                        Object value = field.get(sampleRepo);
-                        if (current == null || value == current) {
-                            serverPackField = field;
-                            return serverPackField;
-                        }
-                    }
-                }
-            } catch (Exception ignored) {
-            }
             fieldLookupFailed = true;
-            LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: cannot resolve ResourcePackRepository server pack field ({})", primary.toString());
+            LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: cannot resolve server pack field ({})", primary.toString());
             return null;
         }
     }
@@ -568,5 +608,6 @@ public final class ResourcePackManager {
     public static void onClientDisconnect() {
         serverPackSeen = false;
         serverPackLoadedLogged = false;
+        lastAppliedHost = "";
     }
 }

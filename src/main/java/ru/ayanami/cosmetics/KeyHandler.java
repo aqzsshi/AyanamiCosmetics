@@ -10,13 +10,11 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 
-/**
- * Registers the open-GUI keybind in Minecraft Controls (fully rebindable).
- */
 @SideOnly(Side.CLIENT)
 public class KeyHandler {
 
     public static KeyBinding openGuiKey;
+    public static KeyBinding toggleOverrideKey;
 
     public static void init() {
         openGuiKey = new KeyBinding(
@@ -24,7 +22,13 @@ public class KeyHandler {
                 Keyboard.KEY_O,
                 "key.categories.ayanamicosmetics"
         );
+        toggleOverrideKey = new KeyBinding(
+                "key.ayanamicosmetics.toggle",
+                Keyboard.KEY_P,
+                "key.categories.ayanamicosmetics"
+        );
         ClientRegistry.registerKeyBinding(openGuiKey);
+        ClientRegistry.registerKeyBinding(toggleOverrideKey);
         MinecraftForge.EVENT_BUS.register(new KeyHandler());
     }
 
@@ -34,10 +38,15 @@ public class KeyHandler {
         if (mc == null) {
             return;
         }
+
+        if (toggleOverrideKey != null && toggleOverrideKey.isPressed() && mc.currentScreen == null) {
+            ResourcePackManager.toggleOverride();
+            return;
+        }
+
         if (openGuiKey == null || !openGuiKey.isPressed()) {
             return;
         }
-        // Toggle: open when no screen, close when our screen is open
         if (mc.currentScreen == null) {
             mc.displayGuiScreen(new GuiAyanamiCosmetics(null));
         } else if (mc.currentScreen instanceof GuiAyanamiCosmetics) {
