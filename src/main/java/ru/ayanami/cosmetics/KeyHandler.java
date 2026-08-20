@@ -10,6 +10,9 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Keyboard;
 
+/**
+ * Registers the open-GUI keybind in Minecraft Controls (fully rebindable).
+ */
 @SideOnly(Side.CLIENT)
 public class KeyHandler {
 
@@ -28,11 +31,17 @@ public class KeyHandler {
     @SubscribeEvent
     public void onKeyInput(InputEvent.KeyInputEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc == null || mc.currentScreen != null) {
+        if (mc == null) {
             return;
         }
-        if (openGuiKey != null && openGuiKey.isPressed()) {
-            mc.displayGuiScreen(new GuiAyanamiCosmetics(mc.currentScreen));
+        if (openGuiKey == null || !openGuiKey.isPressed()) {
+            return;
+        }
+        // Toggle: open when no screen, close when our screen is open
+        if (mc.currentScreen == null) {
+            mc.displayGuiScreen(new GuiAyanamiCosmetics(null));
+        } else if (mc.currentScreen instanceof GuiAyanamiCosmetics) {
+            mc.displayGuiScreen(null);
         }
     }
 }
