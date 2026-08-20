@@ -41,8 +41,14 @@ public class ClientEvents {
 
     @SubscribeEvent
     public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        // Server may send its RP shortly after; sync will pick it up on tick.
         AyanamiCosmetics.LOGGER.info("[AyanamiCosmetics] Client connected; waiting for server resource pack if any");
+        ResourcePackManager.ensureSelectedPackExists();
+        Minecraft.getMinecraft().addScheduledTask(new Runnable() {
+            @Override
+            public void run() {
+                ResourcePackManager.syncOverrideState(true);
+            }
+        });
     }
 
     @SubscribeEvent

@@ -14,5 +14,5 @@ gui.ayanamicosmetics.server_loaded=Server Resource Pack: LOADED
 gui.ayanamicosmetics.server_not_loaded=Server Resource Pack: NOT LOADED
 gui.ayanamicosmetics.done=Готово
 gui.ayanamicosmetics.pack_select_title=Выбор Override-пака
-gui.ayanamicosmetics.no_packs=ZIP-паки в resourcepacks не найдены
+gui.ayanamicosmetics.no_packs=В resourcepacks нет ZIP/папок с паками
 gui.ayanamicosmetics.pack_missing=<нет>

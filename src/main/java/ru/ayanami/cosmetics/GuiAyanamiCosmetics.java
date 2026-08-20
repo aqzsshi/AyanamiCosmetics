@@ -23,20 +23,30 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         this.parent = parent;
     }
 
+    private static String tr(String key, String fallback) {
+        String value = I18n.format(key);
+        if (value == null || value.equals(key)) {
+            return fallback;
+        }
+        return value;
+    }
+
     @Override
     public void initGui() {
         this.buttonList.clear();
+        ResourcePackManager.ensureSelectedPackExists();
+
         int centerX = this.width / 2;
         int startY = this.height / 4 + 24;
 
         String toggleLabel = Config.isOverrideEnabled()
-                ? I18n.format("gui.ayanamicosmetics.disable")
-                : I18n.format("gui.ayanamicosmetics.enable");
+                ? tr("gui.ayanamicosmetics.disable", "Disable Override")
+                : tr("gui.ayanamicosmetics.enable", "Enable Override");
 
         this.buttonList.add(new GuiButton(ID_TOGGLE, centerX - 100, startY, 200, 20, toggleLabel));
-        this.buttonList.add(new GuiButton(ID_SELECT, centerX - 100, startY + 48, 200, 20, I18n.format("gui.ayanamicosmetics.select_pack")));
-        this.buttonList.add(new GuiButton(ID_RELOAD, centerX - 100, startY + 72, 200, 20, I18n.format("gui.ayanamicosmetics.reload")));
-        this.buttonList.add(new GuiButton(ID_DONE, centerX - 100, startY + 120, 200, 20, I18n.format("gui.ayanamicosmetics.done")));
+        this.buttonList.add(new GuiButton(ID_SELECT, centerX - 100, startY + 48, 200, 20, tr("gui.ayanamicosmetics.select_pack", "Select Pack")));
+        this.buttonList.add(new GuiButton(ID_RELOAD, centerX - 100, startY + 72, 200, 20, tr("gui.ayanamicosmetics.reload", "Reload Resources")));
+        this.buttonList.add(new GuiButton(ID_DONE, centerX - 100, startY + 120, 200, 20, tr("gui.ayanamicosmetics.done", "Done")));
     }
 
     @Override
@@ -66,35 +76,42 @@ public class GuiAyanamiCosmetics extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
-        this.drawCenteredString(this.fontRenderer, I18n.format("gui.ayanamicosmetics.title"), this.width / 2, 20, 0xFFFFFF);
+        this.drawCenteredString(this.fontRenderer, tr("gui.ayanamicosmetics.title", "AyanamiCosmetics"), this.width / 2, 20, 0xFFFFFF);
 
         int centerX = this.width / 2;
         int infoY = this.height / 4;
 
         String packName = Config.getSelectedPackName();
         if (packName == null || packName.isEmpty()) {
-            packName = I18n.format("gui.ayanamicosmetics.pack_missing");
+            packName = tr("gui.ayanamicosmetics.pack_missing", "<none>");
+        }
+        if (ResourcePackManager.resolveSelectedPackFile() == null) {
+            packName = packName + " [MISSING]";
         }
 
         this.drawCenteredString(
                 this.fontRenderer,
-                I18n.format("gui.ayanamicosmetics.current_pack") + " " + packName,
+                tr("gui.ayanamicosmetics.current_pack", "Current pack:") + " " + packName,
                 centerX,
                 infoY,
                 0xA0A0A0
         );
 
         String overrideStatus = Config.isOverrideEnabled()
-                ? I18n.format("gui.ayanamicosmetics.override_on")
-                : I18n.format("gui.ayanamicosmetics.override_off");
+                ? tr("gui.ayanamicosmetics.override_on", "Override: ON")
+                : tr("gui.ayanamicosmetics.override_off", "Override: OFF");
         String serverStatus = ResourcePackManager.isServerResourcePackLoaded()
-                ? I18n.format("gui.ayanamicosmetics.server_loaded")
-                : I18n.format("gui.ayanamicosmetics.server_not_loaded");
+                ? tr("gui.ayanamicosmetics.server_loaded", "Server Resource Pack: LOADED")
+                : tr("gui.ayanamicosmetics.server_not_loaded", "Server Resource Pack: NOT LOADED");
+        String appliedStatus = ResourcePackManager.isOverrideApplied()
+                ? "Applied: YES"
+                : "Applied: NO";
 
-        int statusY = this.height / 4 + 100;
-        this.drawCenteredString(this.fontRenderer, I18n.format("gui.ayanamicosmetics.status"), centerX, statusY, 0xFFFFFF);
+        int statusY = this.height / 4 + 96;
+        this.drawCenteredString(this.fontRenderer, tr("gui.ayanamicosmetics.status", "Status:"), centerX, statusY, 0xFFFFFF);
         this.drawCenteredString(this.fontRenderer, overrideStatus, centerX, statusY + 12, Config.isOverrideEnabled() ? 0x55FF55 : 0xFF5555);
         this.drawCenteredString(this.fontRenderer, serverStatus, centerX, statusY + 24, ResourcePackManager.isServerResourcePackLoaded() ? 0x55FF55 : 0xFFAA00);
+        this.drawCenteredString(this.fontRenderer, appliedStatus, centerX, statusY + 36, ResourcePackManager.isOverrideApplied() ? 0x55FF55 : 0xFF5555);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -130,17 +147,13 @@ public class GuiAyanamiCosmetics extends GuiScreen {
             for (int i = 0; i < count; i++) {
                 String name = this.packs.get(i);
                 GuiButton button = new GuiButton(ID_PACK_BASE + i, centerX - 120, y + i * 24, 240, 20, name);
-                if (name.equals(Config.getSelectedPackName())) {
+                if (name.equalsIgnoreCase(Config.getSelectedPackName())) {
                     button.displayString = "> " + name + " <";
                 }
                 this.buttonList.add(button);
             }
 
-            if (this.packs.isEmpty()) {
-                // No clickable packs; back only.
-            }
-
-            this.buttonList.add(new GuiButton(ID_BACK, centerX - 100, this.height - 28, 200, 20, I18n.format("gui.ayanamicosmetics.done")));
+            this.buttonList.add(new GuiButton(ID_BACK, centerX - 100, this.height - 28, 200, 20, tr("gui.ayanamicosmetics.done", "Done")));
         }
 
         @Override
@@ -161,9 +174,9 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         @Override
         public void drawScreen(int mouseX, int mouseY, float partialTicks) {
             this.drawDefaultBackground();
-            this.drawCenteredString(this.fontRenderer, I18n.format("gui.ayanamicosmetics.pack_select_title"), this.width / 2, 15, 0xFFFFFF);
+            this.drawCenteredString(this.fontRenderer, tr("gui.ayanamicosmetics.pack_select_title", "Select Override Pack"), this.width / 2, 15, 0xFFFFFF);
             if (this.packs == null || this.packs.isEmpty()) {
-                this.drawCenteredString(this.fontRenderer, I18n.format("gui.ayanamicosmetics.no_packs"), this.width / 2, this.height / 2, 0xFF5555);
+                this.drawCenteredString(this.fontRenderer, tr("gui.ayanamicosmetics.no_packs", "No ZIP/folder packs in resourcepacks"), this.width / 2, this.height / 2, 0xFF5555);
             }
             super.drawScreen(mouseX, mouseY, partialTicks);
         }

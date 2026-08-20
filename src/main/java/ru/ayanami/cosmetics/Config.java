@@ -9,7 +9,7 @@ import java.io.File;
  */
 public final class Config {
 
-    public static final String DEFAULT_PACK_NAME = "AyanamiCosmetics.zip";
+    public static final String DEFAULT_PACK_NAME = "ayanacosmetics";
 
     private static Configuration configuration;
 
