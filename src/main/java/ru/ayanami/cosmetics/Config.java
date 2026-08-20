@@ -5,16 +5,15 @@ import net.minecraftforge.common.config.Configuration;
 import java.io.File;
 
 /**
- * Persistent client config for AyanamiCosmetics.
+ * Persistent client config. Selected pack is any ZIP/folder from resourcepacks/ — no fixed name.
  */
 public final class Config {
-
-    public static final String DEFAULT_PACK_NAME = "ayanacosmetics";
 
     private static Configuration configuration;
 
     private static boolean overrideEnabled = false;
-    private static String selectedPackName = DEFAULT_PACK_NAME;
+    /** Empty means "not chosen yet" — resolved to any available pack at runtime. */
+    private static String selectedPackName = "";
 
     private Config() {
     }
@@ -39,16 +38,18 @@ public final class Config {
             selectedPackName = configuration.getString(
                     "selectedPackName",
                     Configuration.CATEGORY_GENERAL,
-                    DEFAULT_PACK_NAME,
-                    "ZIP file name inside .minecraft/resourcepacks used as the override pack."
+                    "",
+                    "Any ZIP or folder name inside .minecraft/resourcepacks used as the override pack. Leave empty to auto-pick the first available pack."
             );
-            if (selectedPackName == null || selectedPackName.trim().isEmpty()) {
-                selectedPackName = DEFAULT_PACK_NAME;
+            if (selectedPackName == null) {
+                selectedPackName = "";
+            } else {
+                selectedPackName = selectedPackName.trim();
             }
         } catch (Exception e) {
             AyanamiCosmetics.LOGGER.warn("[AyanamiCosmetics] Failed to load config, using defaults: {}", e.toString());
             overrideEnabled = false;
-            selectedPackName = DEFAULT_PACK_NAME;
+            selectedPackName = "";
         } finally {
             if (configuration.hasChanged()) {
                 configuration.save();
@@ -69,8 +70,8 @@ public final class Config {
             configuration.get(
                     Configuration.CATEGORY_GENERAL,
                     "selectedPackName",
-                    DEFAULT_PACK_NAME
-            ).set(selectedPackName);
+                    ""
+            ).set(selectedPackName == null ? "" : selectedPackName);
             configuration.save();
         } catch (Exception e) {
             AyanamiCosmetics.LOGGER.warn("[AyanamiCosmetics] Failed to save config: {}", e.toString());
@@ -87,12 +88,12 @@ public final class Config {
     }
 
     public static String getSelectedPackName() {
-        return selectedPackName;
+        return selectedPackName == null ? "" : selectedPackName;
     }
 
     public static void setSelectedPackName(String packName) {
-        if (packName == null || packName.trim().isEmpty()) {
-            selectedPackName = DEFAULT_PACK_NAME;
+        if (packName == null) {
+            selectedPackName = "";
         } else {
             selectedPackName = packName.trim();
         }

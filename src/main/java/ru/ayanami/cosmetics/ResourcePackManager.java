@@ -39,15 +39,6 @@ public final class ResourcePackManager {
             "field_148532_f"
     };
 
-    private static final String[] AUTO_PACK_CANDIDATES = new String[] {
-            "AyanamiCosmetics.zip",
-            "AyanamiCosmetics",
-            "ayanamicosmetics.zip",
-            "ayanamicosmetics",
-            "ayanacosmetics.zip",
-            "ayanacosmetics"
-    };
-
     private static Field serverPackField;
     private static boolean fieldLookupFailed;
 
@@ -167,22 +158,17 @@ public final class ResourcePackManager {
     }
 
     /**
-     * If configured pack is missing, pick a sensible cosmetic pack from resourcepacks/.
+     * If configured pack is missing/empty, pick the first available pack from resourcepacks/
+     * (any ZIP or folder — no fixed name required).
      */
     public static void ensureSelectedPackExists() {
-        File current = findPackFile(Config.getSelectedPackName());
-        if (current != null) {
-            if (!current.getName().equals(Config.getSelectedPackName())) {
-                Config.setSelectedPackName(current.getName());
-            }
-            return;
-        }
-
-        for (int i = 0; i < AUTO_PACK_CANDIDATES.length; i++) {
-            File candidate = findPackFile(AUTO_PACK_CANDIDATES[i]);
-            if (candidate != null) {
-                LOGGER.info("[AyanamiCosmetics] Auto-selected user resource pack: {}", candidate.getName());
-                Config.setSelectedPackName(candidate.getName());
+        String configured = Config.getSelectedPackName();
+        if (configured != null && !configured.isEmpty()) {
+            File current = findPackFile(configured);
+            if (current != null) {
+                if (!current.getName().equals(configured)) {
+                    Config.setSelectedPackName(current.getName());
+                }
                 return;
             }
         }
@@ -190,8 +176,12 @@ public final class ResourcePackManager {
         List<String> available = listAvailablePackNames();
         if (!available.isEmpty()) {
             String first = available.get(0);
-            LOGGER.info("[AyanamiCosmetics] Auto-selected first available pack: {}", first);
-            Config.setSelectedPackName(first);
+            if (!first.equals(Config.getSelectedPackName())) {
+                LOGGER.info("[AyanamiCosmetics] Auto-selected available pack: {}", first);
+                Config.setSelectedPackName(first);
+            }
+        } else if (configured != null && !configured.isEmpty()) {
+            LOGGER.warn("[AyanamiCosmetics] Configured pack not found and resourcepacks/ is empty: {}", configured);
         }
     }
 

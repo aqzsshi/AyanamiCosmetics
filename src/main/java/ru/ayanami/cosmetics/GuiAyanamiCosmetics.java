@@ -213,7 +213,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawStatusChip(this.panelX + 222, chipY, applied ? "APPLIED" : "NOT APPLIED", applied ? 0xFF2E8B57 : 0xFF6A4040, applied);
 
         // Pack section label
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.pack_list", "Cosmetic packs"), this.panelX + 14, this.panelY + 66, 0xFFB7CBD8, false);
+        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.pack_list", "Your resource packs"), this.panelX + 14, this.panelY + 66, 0xFFB7CBD8, false);
 
         String selected = Config.getSelectedPackName();
         if (selected == null || selected.isEmpty()) {
@@ -225,7 +225,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawPackList(mouseX, mouseY);
 
         // Footer hint
-        String hint = tr("gui.ayanamicosmetics.footer_hint", "Click a pack to select · Keys opens Controls to rebind");
+        String hint = tr("gui.ayanamicosmetics.footer_hint", "Any pack from resourcepacks/ · Click to select · Keys to rebind");
         int hintW = this.fontRenderer.getStringWidth(hint);
         this.fontRenderer.drawString(hint, this.panelX + (PANEL_WIDTH - hintW) / 2, this.panelY + PANEL_HEIGHT - 22, 0xFF6E7F8C, false);
 
@@ -251,7 +251,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawRect(this.packListX, this.packListY + this.packListH - 1, this.packListX + this.packListW, this.packListY + this.packListH, 0xFF3A5160);
 
         if (this.packs == null || this.packs.isEmpty()) {
-            String empty = tr("gui.ayanamicosmetics.no_packs", "No packs in resourcepacks/");
+            String empty = tr("gui.ayanamicosmetics.no_packs", "Put any ZIP or folder into resourcepacks/");
             int w = this.fontRenderer.getStringWidth(empty);
             this.fontRenderer.drawString(empty, this.packListX + (this.packListW - w) / 2, this.packListY + this.packListH / 2 - 4, 0xFFFF8A8A, false);
             return;
