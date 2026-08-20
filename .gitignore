@@ -1,0 +1,17 @@
+# Gradle start script ignores
+.gradle/
+build/
+run/
+eclipse/
+out/
+*.iml
+*.ipr
+*.iws
+.idea/
+*.launch
+.classpath
+.project
+.settings/
+bin/
+libs/
+classes/

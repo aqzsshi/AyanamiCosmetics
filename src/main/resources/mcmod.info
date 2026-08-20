@@ -1,0 +1,17 @@
+[
+  {
+    "modid": "ayanamicosmetics",
+    "name": "AyanamiCosmetics",
+    "description": "Client-side resource pack override for server resource packs. Lets a local cosmetic pack take priority over the server pack without removing it.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Ayanami"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": [],
+    "clientSideOnly": true
+  }
+]

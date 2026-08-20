@@ -1,0 +1,18 @@
+key.categories.ayanamicosmetics=AyanamiCosmetics
+key.ayanamicosmetics.opengui=Открыть настройки AyanamiCosmetics
+
+gui.ayanamicosmetics.title=AyanamiCosmetics
+gui.ayanamicosmetics.enable=Включить Override
+gui.ayanamicosmetics.disable=Выключить Override
+gui.ayanamicosmetics.current_pack=Текущий пак:
+gui.ayanamicosmetics.select_pack=Выбрать пак
+gui.ayanamicosmetics.reload=Перезагрузить ресурсы
+gui.ayanamicosmetics.status=Статус:
+gui.ayanamicosmetics.override_on=Override: ON
+gui.ayanamicosmetics.override_off=Override: OFF
+gui.ayanamicosmetics.server_loaded=Server Resource Pack: LOADED
+gui.ayanamicosmetics.server_not_loaded=Server Resource Pack: NOT LOADED
+gui.ayanamicosmetics.done=Готово
+gui.ayanamicosmetics.pack_select_title=Выбор Override-пака
+gui.ayanamicosmetics.no_packs=ZIP-паки в resourcepacks не найдены
+gui.ayanamicosmetics.pack_missing=<нет>
