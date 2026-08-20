@@ -89,6 +89,31 @@ public final class ResourcePackManager {
      * Resolves the configured pack name to an existing ZIP or folder (case-insensitive).
      */
     @Nullable
+    public static File resolvePackFileByName(@Nullable String name) {
+        return findPackFile(name);
+    }
+
+    /**
+     * Creates a temporary IResourcePack instance for previews (not cached as active override).
+     */
+    @Nullable
+    public static IResourcePack createPackInstance(@Nullable String name) {
+        File packFile = findPackFile(name);
+        if (packFile == null) {
+            return null;
+        }
+        try {
+            if (packFile.isDirectory()) {
+                return new FolderResourcePack(packFile);
+            }
+            return new FileResourcePack(packFile);
+        } catch (Exception e) {
+            LOGGER.warn("[AyanamiCosmetics] Failed to open pack for preview: {}", e.toString());
+            return null;
+        }
+    }
+
+    @Nullable
     public static File resolveSelectedPackFile() {
         ensureSelectedPackExists();
         return findPackFile(Config.getSelectedPackName());
