@@ -293,12 +293,38 @@ public final class ResourcePackManager {
     }
 
     /**
+     * Ensures local config/ayanamicosmetics/override_pack is applied as highest-priority override layer.
+     */
+    public static synchronized void ensureOverridePackInStack() {
+        // Actual injection happens in loadActiveOverridePacks via alwaysIncludeOverrideDir().
+        clearPackCache();
+        if (!Config.isOverrideEnabled()) {
+            Config.setOverrideEnabled(true);
+        }
+    }
+
+    private static void alwaysIncludeOverrideDir(List<IResourcePack> packs, List<String> names) {
+        try {
+            File overrideDir = ru.ayanami.cosmetics.catalog.CatalogManager.getOverridePackDir();
+            if (overrideDir.isDirectory()) {
+                File assets = new File(overrideDir, "assets");
+                if (assets.isDirectory() || new File(overrideDir, "pack.mcmeta").isFile()) {
+                    packs.add(0, new FolderResourcePack(overrideDir));
+                    names.add(0, "override_pack");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn("[AyanamiCosmetics] Could not attach override_pack: {}", e.toString());
+        }
+    }
+
+    /**
      * Loads all active packs in priority order. Returns empty list if none valid.
      */
     public static synchronized List<IResourcePack> loadActiveOverridePacks(boolean forceReload) {
         ensureSelectedPackExists();
         List<String> names = new ArrayList<String>(Config.getActivePacks());
-        String key = buildStackKey(names);
+        String key = "ovr|" + buildStackKey(names);
         if (!forceReload && key.equals(cachedStackKey) && !cachedOverridePacks.isEmpty()) {
             return cachedOverridePacks;
         }
@@ -306,6 +332,10 @@ public final class ResourcePackManager {
         List<IResourcePack> packs = new ArrayList<IResourcePack>();
         List<String> resolvedNames = new ArrayList<String>();
         for (int i = 0; i < names.size(); i++) {
+            // skip reserved name
+            if ("override_pack".equalsIgnoreCase(names.get(i))) {
+                continue;
+            }
             File packFile = findPackFile(names.get(i));
             if (packFile == null) {
                 LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: file not found ({})", names.get(i));
@@ -328,12 +358,12 @@ public final class ResourcePackManager {
                 LOGGER.warn("[AyanamiCosmetics] Failed to load resource pack: {}", e.toString());
             }
         }
+
+        alwaysIncludeOverrideDir(packs, resolvedNames);
+
         cachedOverridePacks = packs;
         cachedOverrideNames = resolvedNames;
         cachedStackKey = key;
-        if (!resolvedNames.equals(names)) {
-            Config.setActivePacks(resolvedNames);
-        }
         return packs;
     }
 

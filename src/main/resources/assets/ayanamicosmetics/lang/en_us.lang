@@ -1,12 +1,16 @@
 key.categories.ayanamicosmetics=AyanamiCosmetics
-key.ayanamicosmetics.opengui=Open AyanamiCosmetics Menu
+key.ayanamicosmetics.opengui=Open Cosmetics Menu
 key.ayanamicosmetics.toggle=Toggle Override
 
 gui.ayanamicosmetics.title=AyanamiCosmetics
+gui.ayanamicosmetics.cosmetics_title=Cosmetics
+gui.ayanamicosmetics.categories=Categories
 gui.ayanamicosmetics.enable=Override ON
 gui.ayanamicosmetics.disable=Override OFF
 gui.ayanamicosmetics.reload_short=Reload
 gui.ayanamicosmetics.apply=Apply
+gui.ayanamicosmetics.update=Update
+gui.ayanamicosmetics.advanced=Advanced
 gui.ayanamicosmetics.add_stack=+ Stack
 gui.ayanamicosmetics.rem_stack=- Stack
 gui.ayanamicosmetics.favorite=Star
@@ -19,6 +23,7 @@ gui.ayanamicosmetics.no_icon=No pack.png
 gui.ayanamicosmetics.type=Type:
 gui.ayanamicosmetics.stack=Stack:
 gui.ayanamicosmetics.no_server=Not on a server
-gui.ayanamicosmetics.done=Done
+gui.ayanamicosmetics.done=Close
 gui.ayanamicosmetics.no_packs=Put any ZIP or folder into resourcepacks/
 gui.ayanamicosmetics.pack_missing=<not selected>
+gui.ayanamicosmetics.empty_catalog=Catalog is empty. Press Update or add folders.

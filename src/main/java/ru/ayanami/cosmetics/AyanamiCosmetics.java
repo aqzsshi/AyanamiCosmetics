@@ -6,16 +6,11 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ru.ayanami.cosmetics.catalog.CatalogManager;
+import ru.ayanami.cosmetics.update.UpdateManager;
 
 import java.io.File;
 
-/**
- * AyanamiCosmetics — client-only Forge 1.12.2 mod.
- * <p>
- * Provides a local cosmetic resource-pack override that sits logically above the
- * server resource pack inside the vanilla ResourceManager, without render patches
- * and without replacing/removing the server pack.
- */
 @Mod(
         modid = AyanamiCosmetics.MODID,
         name = AyanamiCosmetics.NAME,
@@ -28,7 +23,7 @@ public class AyanamiCosmetics {
 
     public static final String MODID = "ayanamicosmetics";
     public static final String NAME = "AyanamiCosmetics";
-    public static final String VERSION = "1.1.0";
+    public static final String VERSION = "1.2.0";
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
@@ -50,7 +45,18 @@ public class AyanamiCosmetics {
         if (event.getSide() != Side.CLIENT) {
             return;
         }
+        CatalogManager.initFolders();
+        UpdateManager.loadLocalVersions();
         KeyHandler.init();
         ClientEvents.init();
+        InventoryCosmeticsButton.init();
+
+        // Background update check (free GitHub hosting).
+        UpdateManager.checkAndUpdateAsync(new Runnable() {
+            @Override
+            public void run() {
+                CatalogManager.reload();
+            }
+        });
     }
 }

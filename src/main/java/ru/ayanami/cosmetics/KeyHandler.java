@@ -48,7 +48,9 @@ public class KeyHandler {
             return;
         }
         if (mc.currentScreen == null) {
-            mc.displayGuiScreen(new GuiAyanamiCosmetics(null));
+            mc.displayGuiScreen(new GuiCosmeticsMenu(null));
+        } else if (mc.currentScreen instanceof GuiCosmeticsMenu) {
+            mc.displayGuiScreen(null);
         } else if (mc.currentScreen instanceof GuiAyanamiCosmetics) {
             mc.displayGuiScreen(null);
         }

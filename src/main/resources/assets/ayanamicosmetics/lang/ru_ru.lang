@@ -1,12 +1,16 @@
 key.categories.ayanamicosmetics=AyanamiCosmetics
-key.ayanamicosmetics.opengui=Открыть меню AyanamiCosmetics
+key.ayanamicosmetics.opengui=Открыть меню косметики
 key.ayanamicosmetics.toggle=Вкл/Выкл Override
 
 gui.ayanamicosmetics.title=AyanamiCosmetics
+gui.ayanamicosmetics.cosmetics_title=Косметика
+gui.ayanamicosmetics.categories=Категории
 gui.ayanamicosmetics.enable=Override ВКЛ
 gui.ayanamicosmetics.disable=Override ВЫКЛ
 gui.ayanamicosmetics.reload_short=Reload
 gui.ayanamicosmetics.apply=Применить
+gui.ayanamicosmetics.update=Обновить
+gui.ayanamicosmetics.advanced=Дополнительно
 gui.ayanamicosmetics.add_stack=+ Стек
 gui.ayanamicosmetics.rem_stack=- Стек
 gui.ayanamicosmetics.favorite=Избр.
@@ -19,6 +23,7 @@ gui.ayanamicosmetics.no_icon=Нет pack.png
 gui.ayanamicosmetics.type=Тип:
 gui.ayanamicosmetics.stack=Стек:
 gui.ayanamicosmetics.no_server=Не на сервере
-gui.ayanamicosmetics.done=Готово
+gui.ayanamicosmetics.done=Закрыть
 gui.ayanamicosmetics.no_packs=Положите любой ZIP или папку в resourcepacks/
 gui.ayanamicosmetics.pack_missing=<не выбран>
+gui.ayanamicosmetics.empty_catalog=Каталог пуст. Нажмите Обновить или добавьте папки.
