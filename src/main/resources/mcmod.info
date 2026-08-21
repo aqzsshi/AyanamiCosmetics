@@ -1,14 +1,14 @@
 [
   {
     "modid": "tweakos",
-    "name": "TweakOs",
+    "name": "TweakOS",
     "description": "Client cosmetics wardrobe and resource pack tweaks for RP servers. Local model/pack overrides without replacing the server resource pack.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "https://github.com/aqzsshi/AyanamiCosmetics",
     "updateUrl": "",
     "authorList": ["AyanamiKaede"],
-    "credits": "Created by AyanamiKaede · TweakOs",
+    "credits": "Created by AyanamiKaede · TweakOS",
     "logoFile": "",
     "screenshots": [],
     "dependencies": [],

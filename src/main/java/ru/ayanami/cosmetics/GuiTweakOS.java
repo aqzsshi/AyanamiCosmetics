@@ -26,7 +26,7 @@ import java.util.Locale;
  * search + filters on top, pack cards on the left, preview/details on the right.
  */
 @SideOnly(Side.CLIENT)
-public class GuiTweakOs extends GuiScreen {
+public class GuiTweakOS extends GuiScreen {
 
     private static final int ID_TOGGLE = 1;
     private static final int ID_RELOAD = 2;
@@ -82,7 +82,7 @@ public class GuiTweakOs extends GuiScreen {
     private ResourceLocation previewLocation;
     private String previewTexturePack;
 
-    public GuiTweakOs(GuiScreen parent) {
+    public GuiTweakOS(GuiScreen parent) {
         this.parent = parent;
     }
 
@@ -443,9 +443,9 @@ public class GuiTweakOs extends GuiScreen {
         drawSoftPanel(this.panelX, this.panelY, this.panelW, this.panelH, 0xF0141418, 0xFF2A2A32);
 
         // Title
-        this.fontRenderer.drawString(tr("gui.tweakos.title", "TweakOs"), this.panelX + 14, this.panelY - 12, 0xFFE8EAF0, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.title", "TweakOS"), this.panelX + 14, this.panelY - 12, 0xFFE8EAF0, false);
         String author = tr("gui.tweakos.author", "Created by AyanamiKaede");
-        this.fontRenderer.drawString(author, this.panelX + 14 + this.fontRenderer.getStringWidth(tr("gui.tweakos.title", "TweakOs")) + 8, this.panelY - 12, 0xFF6E7180, false);
+        this.fontRenderer.drawString(author, this.panelX + 14 + this.fontRenderer.getStringWidth(tr("gui.tweakos.title", "TweakOS")) + 8, this.panelY - 12, 0xFF6E7180, false);
         String keyName = KeyHandler.openGuiKey != null ? KeyHandler.openGuiKey.getDisplayName() : "O";
         String keyHint = tr("gui.tweakos.key_hint", "Menu key:") + " " + keyName;
         this.fontRenderer.drawString(keyHint, this.panelX + this.panelW - 8 - this.fontRenderer.getStringWidth(keyHint), this.panelY - 12, 0xFF8B8E98, false);

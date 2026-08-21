@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
  */
 public final class ResourcePackManager {
 
-    private static final Logger LOGGER = TweakOs.LOGGER;
+    private static final Logger LOGGER = TweakOS.LOGGER;
 
     private static final String[] SERVER_PACK_FIELD_NAMES = new String[] {
             "serverResourcePack",
@@ -110,7 +110,7 @@ public final class ResourcePackManager {
         }
         Config.ServerProfile profile = Config.getServerProfile(host);
         if (profile == null) {
-            LOGGER.info("[TweakOs] No saved profile for server {}", host);
+            LOGGER.info("[TweakOS] No saved profile for server {}", host);
             return;
         }
         if (host.equals(lastAppliedHost)
@@ -118,7 +118,7 @@ public final class ResourcePackManager {
                 && profile.overrideEnabled == Config.isOverrideEnabled()) {
             return;
         }
-        LOGGER.info("[TweakOs] Applying server profile for {}: packs={}, override={}",
+        LOGGER.info("[TweakOS] Applying server profile for {}: packs={}, override={}",
                 host, profile.packs, profile.overrideEnabled);
         Config.setActivePacks(profile.packs);
         Config.setOverrideEnabled(profile.overrideEnabled);
@@ -130,7 +130,7 @@ public final class ResourcePackManager {
     public static synchronized void saveProfileForCurrentServer() {
         String host = getCurrentServerHost();
         if (host == null || host.isEmpty()) {
-            LOGGER.warn("[TweakOs] Cannot save profile: not connected to a server");
+            LOGGER.warn("[TweakOS] Cannot save profile: not connected to a server");
             return;
         }
         Config.saveServerProfile(host, Config.getActivePacks(), Config.isOverrideEnabled());
@@ -153,7 +153,7 @@ public final class ResourcePackManager {
             }
             return new FileResourcePack(packFile);
         } catch (Exception e) {
-            LOGGER.warn("[TweakOs] Failed to open pack for preview: {}", e.toString());
+            LOGGER.warn("[TweakOS] Failed to open pack for preview: {}", e.toString());
             return null;
         }
     }
@@ -234,7 +234,7 @@ public final class ResourcePackManager {
         List<String> available = listAvailablePackNames();
         if (!available.isEmpty()) {
             Config.setActivePacks(Collections.singletonList(available.get(0)));
-            LOGGER.info("[TweakOs] Auto-selected available pack: {}", available.get(0));
+            LOGGER.info("[TweakOS] Auto-selected available pack: {}", available.get(0));
         }
     }
 
@@ -314,7 +314,7 @@ public final class ResourcePackManager {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("[TweakOs] Could not attach override_pack: {}", e.toString());
+            LOGGER.warn("[TweakOS] Could not attach override_pack: {}", e.toString());
         }
     }
 
@@ -338,12 +338,12 @@ public final class ResourcePackManager {
             }
             File packFile = findPackFile(names.get(i));
             if (packFile == null) {
-                LOGGER.warn("[TweakOs] Failed to load resource pack: file not found ({})", names.get(i));
+                LOGGER.warn("[TweakOS] Failed to load resource pack: file not found ({})", names.get(i));
                 continue;
             }
             String validationError = validatePack(packFile);
             if (validationError != null) {
-                LOGGER.warn("[TweakOs] Failed to load resource pack: {}", validationError);
+                LOGGER.warn("[TweakOS] Failed to load resource pack: {}", validationError);
                 continue;
             }
             try {
@@ -353,9 +353,9 @@ public final class ResourcePackManager {
                 pack.getResourceDomains();
                 packs.add(pack);
                 resolvedNames.add(packFile.getName());
-                LOGGER.info("[TweakOs] User resource pack selected: {}", packFile.getName());
+                LOGGER.info("[TweakOS] User resource pack selected: {}", packFile.getName());
             } catch (Exception e) {
-                LOGGER.warn("[TweakOs] Failed to load resource pack: {}", e.toString());
+                LOGGER.warn("[TweakOS] Failed to load resource pack: {}", e.toString());
             }
         }
 
@@ -376,7 +376,7 @@ public final class ResourcePackManager {
                 return "invalid folder structure (missing assets/ and pack.mcmeta) (" + packFile.getName() + ")";
             }
             if (!mcmeta.isFile()) {
-                LOGGER.warn("[TweakOs] Resource pack {} has no pack.mcmeta; continuing anyway", packFile.getName());
+                LOGGER.warn("[TweakOS] Resource pack {} has no pack.mcmeta; continuing anyway", packFile.getName());
             }
             return null;
         }
@@ -428,12 +428,12 @@ public final class ResourcePackManager {
 
         if (current != null && !(current instanceof ResourcePackOverride)) {
             if (!serverPackSeen) {
-                LOGGER.info("[TweakOs] Server resource pack detected");
+                LOGGER.info("[TweakOS] Server resource pack detected");
                 serverPackSeen = true;
             }
             originalServerPack = current;
             if (!serverPackLoadedLogged) {
-                LOGGER.info("[TweakOs] Server resource pack loaded");
+                LOGGER.info("[TweakOS] Server resource pack loaded");
                 serverPackLoadedLogged = true;
             }
         } else if (current instanceof ResourcePackOverride) {
@@ -441,7 +441,7 @@ public final class ResourcePackManager {
             originalServerPack = wrapped.getBasePack();
             serverPackSeen = true;
             if (!serverPackLoadedLogged) {
-                LOGGER.info("[TweakOs] Server resource pack loaded");
+                LOGGER.info("[TweakOS] Server resource pack loaded");
                 serverPackLoadedLogged = true;
             }
         } else if (current == null) {
@@ -499,9 +499,9 @@ public final class ResourcePackManager {
 
     private static void applyOverride(ResourcePackRepository repository, List<IResourcePack> userPacks, List<String> names, IResourcePack basePack, boolean reloadResources) {
         ResourcePackOverride wrapper = new ResourcePackOverride(userPacks, names, basePack);
-        LOGGER.info("[TweakOs] Applying user override");
+        LOGGER.info("[TweakOS] Applying user override");
         if (!setServerPackInstance(repository, wrapper)) {
-            LOGGER.warn("[TweakOs] Failed to load resource pack: could not install override wrapper via reflection");
+            LOGGER.warn("[TweakOS] Failed to load resource pack: could not install override wrapper via reflection");
             return;
         }
         if (reloadResources) {
@@ -515,7 +515,7 @@ public final class ResourcePackManager {
             restore = ((ResourcePackOverride) restore).getBasePack();
         }
         if (!setServerPackInstance(repository, restore)) {
-            LOGGER.warn("[TweakOs] Failed to restore original server resource pack");
+            LOGGER.warn("[TweakOS] Failed to restore original server resource pack");
             return;
         }
         if (reloadResources) {
@@ -526,9 +526,9 @@ public final class ResourcePackManager {
     public static synchronized void setOverrideEnabled(boolean enabled) {
         Config.setOverrideEnabled(enabled);
         if (enabled) {
-            LOGGER.info("[TweakOs] Override enabled");
+            LOGGER.info("[TweakOS] Override enabled");
         } else {
-            LOGGER.info("[TweakOs] Override disabled");
+            LOGGER.info("[TweakOS] Override disabled");
         }
         syncOverrideState(true);
     }
@@ -540,7 +540,7 @@ public final class ResourcePackManager {
     public static synchronized void selectPack(String packName) {
         Config.setSelectedPackName(packName);
         clearPackCache();
-        LOGGER.info("[TweakOs] User resource pack selected: {}", packName);
+        LOGGER.info("[TweakOS] User resource pack selected: {}", packName);
         if (Config.isOverrideEnabled()) {
             syncOverrideState(true);
         }
@@ -549,7 +549,7 @@ public final class ResourcePackManager {
     public static synchronized void addPackToStack(String packName) {
         Config.addActivePack(packName);
         clearPackCache();
-        LOGGER.info("[TweakOs] Added pack to stack: {}", packName);
+        LOGGER.info("[TweakOS] Added pack to stack: {}", packName);
         if (Config.isOverrideEnabled()) {
             syncOverrideState(true);
         }
@@ -558,7 +558,7 @@ public final class ResourcePackManager {
     public static synchronized void removePackFromStack(String packName) {
         Config.removeActivePack(packName);
         clearPackCache();
-        LOGGER.info("[TweakOs] Removed pack from stack: {}", packName);
+        LOGGER.info("[TweakOS] Removed pack from stack: {}", packName);
         if (Config.isOverrideEnabled()) {
             syncOverrideState(true);
         }
@@ -581,9 +581,9 @@ public final class ResourcePackManager {
         applying = true;
         try {
             mc.refreshResources();
-            LOGGER.info("[TweakOs] Resource manager reloaded");
+            LOGGER.info("[TweakOS] Resource manager reloaded");
         } catch (Exception e) {
-            LOGGER.warn("[TweakOs] Failed to reload resource manager: {}", e.toString());
+            LOGGER.warn("[TweakOS] Failed to reload resource manager: {}", e.toString());
         } finally {
             applying = false;
         }
@@ -598,7 +598,7 @@ public final class ResourcePackManager {
             field.set(repository, pack);
             return true;
         } catch (Exception e) {
-            LOGGER.warn("[TweakOs] Reflection set failed for server resource pack slot: {}", e.toString());
+            LOGGER.warn("[TweakOS] Reflection set failed for server resource pack slot: {}", e.toString());
             return false;
         }
     }
@@ -630,7 +630,7 @@ public final class ResourcePackManager {
                 }
             }
             fieldLookupFailed = true;
-            LOGGER.warn("[TweakOs] Failed to load resource pack: cannot resolve server pack field ({})", primary.toString());
+            LOGGER.warn("[TweakOS] Failed to load resource pack: cannot resolve server pack field ({})", primary.toString());
             return null;
         }
     }

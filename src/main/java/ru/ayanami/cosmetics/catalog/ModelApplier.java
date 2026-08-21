@@ -1,6 +1,6 @@
 package ru.ayanami.cosmetics.catalog;
 
-import ru.ayanami.cosmetics.TweakOs;
+import ru.ayanami.cosmetics.TweakOS;
 import ru.ayanami.cosmetics.ResourcePackManager;
 
 import java.io.File;
@@ -20,11 +20,11 @@ public final class ModelApplier {
 
     public static boolean apply(CatalogManager.CatalogEntry entry) {
         if (entry == null || entry.replacePath == null || entry.replacePath.trim().isEmpty()) {
-            TweakOs.LOGGER.warn("[TweakOs] Catalog entry missing replacePath");
+            TweakOS.LOGGER.warn("[TweakOS] Catalog entry missing replacePath");
             return false;
         }
         if (entry.modelFile == null || !entry.modelFile.isFile()) {
-            TweakOs.LOGGER.warn("[TweakOs] Catalog entry {} has no model.json — placeholder apply skipped", entry.id);
+            TweakOS.LOGGER.warn("[TweakOS] Catalog entry {} has no model.json — placeholder apply skipped", entry.id);
             // Still create a marker so workflow is testable.
             return writePlaceholder(entry);
         }
@@ -57,10 +57,10 @@ public final class ModelApplier {
             // So we also mirror/link by adding config override as a selectable pack via a stub in resourcepacks OR load FolderResourcePack directly.
             ResourcePackManager.ensureOverridePackInStack();
             ResourcePackManager.reloadResourcesFromGui();
-            TweakOs.LOGGER.info("[TweakOs] Applied catalog model {} -> {}", entry.id, entry.replacePath);
+            TweakOS.LOGGER.info("[TweakOS] Applied catalog model {} -> {}", entry.id, entry.replacePath);
             return true;
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Failed to apply {}: {}", entry.id, e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Failed to apply {}: {}", entry.id, e.toString());
             return false;
         }
     }

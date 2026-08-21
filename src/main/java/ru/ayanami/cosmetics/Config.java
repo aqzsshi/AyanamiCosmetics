@@ -79,7 +79,7 @@ public final class Config {
                 }
             }
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Failed to load config: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Failed to load config: {}", e.toString());
             overrideEnabled = false;
             activePacks.clear();
             favorites.clear();
@@ -103,7 +103,7 @@ public final class Config {
             configuration.get(CAT_SERVERS, "profiles", new String[0]).set(serverProfiles.toArray(new String[0]));
             configuration.save();
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Failed to save config: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Failed to save config: {}", e.toString());
         }
     }
 
@@ -320,7 +320,7 @@ public final class Config {
         }
         serverProfiles.add(profile.serialize());
         save();
-        TweakOs.LOGGER.info("[TweakOs] Saved server profile for {}", host);
+        TweakOS.LOGGER.info("[TweakOS] Saved server profile for {}", host);
     }
 
     public static void deleteServerProfile(String hostRaw) {

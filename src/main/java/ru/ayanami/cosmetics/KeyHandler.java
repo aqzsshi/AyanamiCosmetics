@@ -51,7 +51,7 @@ public class KeyHandler {
             mc.displayGuiScreen(new GuiCosmeticsMenu(null));
         } else if (mc.currentScreen instanceof GuiCosmeticsMenu) {
             mc.displayGuiScreen(null);
-        } else if (mc.currentScreen instanceof GuiTweakOs) {
+        } else if (mc.currentScreen instanceof GuiTweakOS) {
             mc.displayGuiScreen(null);
         }
     }

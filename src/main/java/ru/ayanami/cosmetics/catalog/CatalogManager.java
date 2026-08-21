@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import ru.ayanami.cosmetics.TweakOs;
+import ru.ayanami.cosmetics.TweakOS;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -61,7 +61,7 @@ public final class CatalogManager {
             // Minimal pack.mcmeta so FolderResourcePack is valid.
             try {
                 java.io.FileWriter w = new java.io.FileWriter(new File(override, "pack.mcmeta"));
-                w.write("{\"pack\":{\"pack_format\":3,\"description\":\"TweakOs local overrides\"}}");
+                w.write("{\"pack\":{\"pack_format\":3,\"description\":\"TweakOS local overrides\"}}");
                 w.close();
             } catch (Exception ignored) {
             }
@@ -89,7 +89,7 @@ public final class CatalogManager {
             w.write("}\n");
             w.close();
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Could not create example catalog entry: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Could not create example catalog entry: {}", e.toString());
         }
     }
 
@@ -124,7 +124,7 @@ public final class CatalogManager {
                 return a.name.compareToIgnoreCase(b.name);
             }
         });
-        TweakOs.LOGGER.info("[TweakOs] Catalog loaded: {} entries", ENTRIES.size());
+        TweakOS.LOGGER.info("[TweakOS] Catalog loaded: {} entries", ENTRIES.size());
     }
 
     @Nullable
@@ -144,7 +144,7 @@ public final class CatalogManager {
             entry.modelFile = new File(folder, "model.json");
             return entry;
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Bad catalog meta in {}: {}", folder.getName(), e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Bad catalog meta in {}: {}", folder.getName(), e.toString());
             return null;
         } finally {
             if (reader != null) {

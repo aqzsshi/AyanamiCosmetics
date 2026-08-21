@@ -207,7 +207,7 @@ public class GuiCosmeticsMenu extends GuiScreen {
             return;
         }
         if (button.id == ID_ADVANCED) {
-            this.mc.displayGuiScreen(new GuiTweakOs(this));
+            this.mc.displayGuiScreen(new GuiTweakOS(this));
             return;
         }
         if (button.id == ID_APPLY) {
@@ -335,7 +335,7 @@ public class GuiCosmeticsMenu extends GuiScreen {
         // Left sidebar
         drawPanel(this.panelX + 6, this.panelY + 6, 108, this.panelH - 36, 0xFF14141A, 0xFF2E2E38);
         this.fontRenderer.drawString(tr("gui.tweakos.wardrobe", "Wardrobe"), this.panelX + 14, this.panelY + 14, 0xFFE8EAF0, false);
-        this.fontRenderer.drawString("TweakOs", this.panelX + 14, this.panelY + this.panelH - 28, 0xFF8B8E98, false);
+        this.fontRenderer.drawString("TweakOS", this.panelX + 14, this.panelY + this.panelH - 28, 0xFF8B8E98, false);
         this.fontRenderer.drawString(tr("gui.tweakos.author", "Created by AyanamiKaede"), this.panelX + 14, this.panelY + this.panelH - 18, 0xFF6E7180, false);
 
         drawNavIconRow(this.panelX + 12, this.panelY + 32, tr("gui.tweakos.tab_outfits", "Outfits"), 0xFF5BD67A);

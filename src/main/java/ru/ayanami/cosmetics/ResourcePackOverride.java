@@ -132,6 +132,6 @@ public class ResourcePackOverride implements IResourcePack {
 
     @Override
     public String getPackName() {
-        return "TweakOs:" + getOverrideName() + "+" + basePack.getPackName();
+        return "TweakOS:" + getOverrideName() + "+" + basePack.getPackName();
     }
 }

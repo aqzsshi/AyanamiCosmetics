@@ -12,23 +12,23 @@ import ru.ayanami.cosmetics.update.UpdateManager;
 import java.io.File;
 
 @Mod(
-        modid = TweakOs.MODID,
-        name = TweakOs.NAME,
-        version = TweakOs.VERSION,
+        modid = TweakOS.MODID,
+        name = TweakOS.NAME,
+        version = TweakOS.VERSION,
         acceptedMinecraftVersions = "[1.12.2]",
         clientSideOnly = true,
         acceptableRemoteVersions = "*"
 )
-public class TweakOs {
+public class TweakOS {
 
     public static final String MODID = "tweakos";
-    public static final String NAME = "TweakOs";
-    public static final String VERSION = "1.3.0";
+    public static final String NAME = "TweakOS";
+    public static final String VERSION = "1.3.1";
 
     public static final Logger LOGGER = LogManager.getLogger(MODID);
 
     @Mod.Instance(MODID)
-    public static TweakOs instance;
+    public static TweakOS instance;
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -37,7 +37,7 @@ public class TweakOs {
         }
         File configFile = new File(event.getModConfigurationDirectory(), MODID + ".cfg");
         Config.init(configFile);
-        LOGGER.info("[TweakOs] Mod initialized");
+        LOGGER.info("[TweakOS] Mod initialized");
     }
 
     @Mod.EventHandler

@@ -2,7 +2,7 @@ package ru.ayanami.cosmetics.update;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import ru.ayanami.cosmetics.TweakOs;
+import ru.ayanami.cosmetics.TweakOS;
 import ru.ayanami.cosmetics.catalog.CatalogManager;
 
 import java.io.BufferedInputStream;
@@ -55,7 +55,7 @@ public final class UpdateManager {
                 localCatalogVersion = json.get("catalog").getAsString();
             }
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Failed to read local_version.json: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Failed to read local_version.json: {}", e.toString());
         } finally {
             if (reader != null) {
                 try {
@@ -74,7 +74,7 @@ public final class UpdateManager {
             out.write(json.getBytes(StandardCharsets.UTF_8));
             out.close();
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Failed to save local_version.json: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Failed to save local_version.json: {}", e.toString());
         }
     }
 
@@ -93,7 +93,7 @@ public final class UpdateManager {
                     }
                 }
             }
-        }, "TweakOs-Updater");
+        }, "TweakOS-Updater");
         t.setDaemon(true);
         t.start();
     }
@@ -101,7 +101,7 @@ public final class UpdateManager {
     public static synchronized void checkAndUpdate() {
         loadLocalVersions();
         lastStatus = "Checking...";
-        TweakOs.LOGGER.info("[TweakOs] Checking updates: {}", VERSION_URL);
+        TweakOS.LOGGER.info("[TweakOS] Checking updates: {}", VERSION_URL);
         try {
             String raw = downloadString(VERSION_URL);
             if (raw == null || raw.trim().isEmpty()) {
@@ -119,7 +119,7 @@ public final class UpdateManager {
                     if (downloadFile(json.get("base_pack_url").getAsString(), target)) {
                         localBaseVersion = remote;
                         changed = true;
-                        TweakOs.LOGGER.info("[TweakOs] Updated base_pack to {}", remote);
+                        TweakOS.LOGGER.info("[TweakOS] Updated base_pack to {}", remote);
                     }
                 }
             }
@@ -133,7 +133,7 @@ public final class UpdateManager {
                         unzipTo(zip, CatalogManager.getCatalogDir());
                         localCatalogVersion = remote;
                         changed = true;
-                        TweakOs.LOGGER.info("[TweakOs] Updated catalog to {}", remote);
+                        TweakOS.LOGGER.info("[TweakOS] Updated catalog to {}", remote);
                     }
                 }
             }
@@ -147,7 +147,7 @@ public final class UpdateManager {
             }
         } catch (Exception e) {
             lastStatus = "Update failed";
-            TweakOs.LOGGER.warn("[TweakOs] Update check failed: {}", e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Update check failed: {}", e.toString());
         }
     }
 
@@ -155,11 +155,11 @@ public final class UpdateManager {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlString).openConnection();
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(15000);
-        conn.setRequestProperty("User-Agent", "TweakOs/" + TweakOs.VERSION);
+        conn.setRequestProperty("User-Agent", "TweakOS/" + TweakOS.VERSION);
         conn.connect();
         int code = conn.getResponseCode();
         if (code != 200) {
-            TweakOs.LOGGER.warn("[TweakOs] HTTP {} for {}", code, urlString);
+            TweakOS.LOGGER.warn("[TweakOS] HTTP {} for {}", code, urlString);
             return null;
         }
         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
@@ -184,7 +184,7 @@ public final class UpdateManager {
             conn = (HttpURLConnection) new URL(urlString).openConnection();
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(60000);
-            conn.setRequestProperty("User-Agent", "TweakOs/" + TweakOs.VERSION);
+            conn.setRequestProperty("User-Agent", "TweakOS/" + TweakOS.VERSION);
             conn.connect();
             if (conn.getResponseCode() != 200) {
                 return false;
@@ -198,7 +198,7 @@ public final class UpdateManager {
             }
             return true;
         } catch (Exception e) {
-            TweakOs.LOGGER.warn("[TweakOs] Download failed {}: {}", urlString, e.toString());
+            TweakOS.LOGGER.warn("[TweakOS] Download failed {}: {}", urlString, e.toString());
             return false;
         } finally {
             try {

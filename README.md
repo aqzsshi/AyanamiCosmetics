@@ -1,4 +1,4 @@
-# TweakOs
+# TweakOS
 
 Клиентский мод Minecraft **1.12.2** (Forge) для косметики и override resource pack на RP-серверах.
 
@@ -15,4 +15,4 @@
 ```bash
 ./gradlew build
 ```
-JAR: `build/libs/TweakOs-1.3.0.jar`
+JAR: `build/libs/TweakOS-1.3.1.jar`
