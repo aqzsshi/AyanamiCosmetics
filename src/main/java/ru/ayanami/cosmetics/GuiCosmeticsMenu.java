@@ -3,14 +3,8 @@ package ru.ayanami.cosmetics;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -18,54 +12,51 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import ru.ayanami.cosmetics.catalog.CatalogManager;
 import ru.ayanami.cosmetics.catalog.ModelApplier;
+import ru.ayanami.cosmetics.catalog.PreviewTextureCache;
+import ru.ayanami.cosmetics.catalog.ServerPackClone;
 import ru.ayanami.cosmetics.update.UpdateManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Essential Wardrobe-style cosmetics screen:
- * left nav + subcategory list, center card grid, right 3D player preview.
+ * Essential Wardrobe-style screen: Hats / Hand cosmetics, render previews, color variants.
+ * Right panel shows selected model preview (not the player).
  */
 @SideOnly(Side.CLIENT)
 public class GuiCosmeticsMenu extends GuiScreen {
 
-    private static final int ID_CLOSE = 1;
+    private static final int ID_BACK = 1;
     private static final int ID_APPLY = 2;
-    private static final int ID_UPDATE = 3;
-    private static final int ID_ADVANCED = 4;
-    private static final int ID_FRONT = 5;
-    private static final int ID_BACK = 6;
-    private static final int ID_TAB_COSMETICS = 10;
-    private static final int ID_SUB_BASE = 100;
+    private static final int ID_PRIORITY = 3;
+    private static final int ID_ADD = 4;
+    private static final int ID_UPDATE = 5;
+    private static final int ID_CLONE = 6;
+    private static final int ID_CAT_HATS = 10;
+    private static final int ID_CAT_HAND = 11;
 
-    private static final String[] DEFAULT_SUBS = new String[] {
-            "cape", "wings", "back", "particles", "pets", "hat", "hair",
-            "face", "ears", "head", "outerwear", "top", "pants", "arms", "shoes", "weapons", "misc"
-    };
+    private static final ResourceLocation TEX_PLUS = new ResourceLocation(TweakOS.MODID, "textures/gui/btn_plus.png");
+    private static final ResourceLocation TEX_GEAR = new ResourceLocation(TweakOS.MODID, "textures/gui/icon_gear.png");
 
     private final GuiScreen parent;
 
     private int panelX, panelY, panelW, panelH;
     private int gridX, gridY, gridW, gridH;
     private int previewX, previewY, previewW, previewH;
+    private int sideX, sideW;
 
     private GuiTextField searchField;
-    private String selectedSub = "all";
+    private String selectedCat = CatalogManager.CAT_HATS;
     private CatalogManager.CatalogEntry selected;
     private List<CatalogManager.CatalogEntry> visible = new ArrayList<CatalogManager.CatalogEntry>();
     private int scrollRow;
+    private String status = "";
 
-    private float rotateYaw = 20.0F;
-    private boolean dragging;
-    private int dragLastX;
-    private String outfitName = "Default";
-
-    private static final int CARD_W = 78;
-    private static final int CARD_H = 86;
+    private static final int CARD_W = 84;
+    private static final int CARD_H = 96;
     private static final int CARD_GAP = 8;
     private static final int COLS = 3;
 
@@ -83,54 +74,48 @@ public class GuiCosmeticsMenu extends GuiScreen {
         this.buttonList.clear();
         Keyboard.enableRepeatEvents(true);
         CatalogManager.reload();
+        ServerPackClone.ensureClonedFromServer();
 
-        this.panelW = Math.min(560, this.width - 12);
-        this.panelH = Math.min(300, this.height - 12);
+        this.panelW = Math.min(620, this.width - 8);
+        this.panelH = Math.min(320, this.height - 8);
         this.panelX = (this.width - this.panelW) / 2;
         this.panelY = (this.height - this.panelH) / 2;
 
-        int leftW = 110;
-        this.previewW = 160;
-        this.previewH = this.panelH - 50;
-        this.previewX = this.panelX + this.panelW - this.previewW - 10;
-        this.previewY = this.panelY + 36;
+        this.sideW = 118;
+        this.sideX = this.panelX + 6;
+        this.previewW = 170;
+        this.previewH = this.panelH - 56;
+        this.previewX = this.panelX + this.panelW - this.previewW - 8;
+        this.previewY = this.panelY + 40;
 
-        this.gridX = this.panelX + leftW + 12;
-        this.gridY = this.panelY + 52;
+        this.gridX = this.sideX + this.sideW + 10;
+        this.gridY = this.panelY + 56;
         this.gridW = this.previewX - this.gridX - 10;
-        this.gridH = this.panelH - 80;
+        this.gridH = this.panelH - 88;
 
-        this.searchField = new GuiTextField(20, this.fontRenderer, this.gridX + this.gridW - 110, this.panelY + 30, 100, 14);
+        this.searchField = new GuiTextField(20, this.fontRenderer, this.gridX + this.gridW - 118, this.panelY + 28, 110, 14);
         this.searchField.setMaxStringLength(40);
         this.searchField.setEnableBackgroundDrawing(false);
         this.searchField.setTextColor(0xFFE8EAF0);
 
-        // Subcategory chips on left under Cosmetics
-        List<String> subs = buildSubList();
-        int sy = this.panelY + 92;
-        for (int i = 0; i < subs.size() && i < 12; i++) {
-            String sub = subs.get(i);
-            boolean on = sub.equalsIgnoreCase(this.selectedSub);
-            this.buttonList.add(new GuiStyledButton(
-                    ID_SUB_BASE + i,
-                    this.panelX + 10,
-                    sy + i * 15,
-                    96,
-                    13,
-                    prettySub(sub),
-                    on ? GuiStyledButton.Style.CHIP_ACTIVE : GuiStyledButton.Style.CHIP
-            ));
-        }
+        // Categories
+        this.buttonList.add(new GuiStyledButton(ID_CAT_HATS, this.sideX + 6, this.panelY + 40, 106, 16,
+                tr("gui.tweakos.cat_hats", "Hats"),
+                CatalogManager.CAT_HATS.equals(this.selectedCat) ? GuiStyledButton.Style.CHIP_ACTIVE : GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_CAT_HAND, this.sideX + 6, this.panelY + 60, 106, 16,
+                tr("gui.tweakos.cat_hand", "Hand cosmetics"),
+                CatalogManager.CAT_HAND.equals(this.selectedCat) ? GuiStyledButton.Style.CHIP_ACTIVE : GuiStyledButton.Style.CHIP));
 
-        // Preview controls
-        this.buttonList.add(new GuiStyledButton(ID_FRONT, this.previewX + 18, this.previewY + this.previewH - 22, 50, 14, tr("gui.tweakos.front", "Front"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_BACK, this.previewX + 78, this.previewY + this.previewH - 22, 50, 14, tr("gui.tweakos.back", "Back"), GuiStyledButton.Style.SECONDARY));
+        // Header actions
+        this.buttonList.add(new GuiStyledButton(ID_BACK, this.panelX + 8, this.panelY + 8, 18, 16, "<", GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_PRIORITY, this.previewX, this.panelY + 8, 18, 16, "S", GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_ADD, this.previewX + this.previewW - 20, this.panelY + 8, 18, 16, "+", GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_CLONE, this.previewX + 22, this.panelY + 8, 48, 16, tr("gui.tweakos.clone_rp", "Clone"), GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_UPDATE, this.previewX + 74, this.panelY + 8, 48, 16, tr("gui.tweakos.update", "Update"), GuiStyledButton.Style.CHIP));
 
         int by = this.panelY + this.panelH - 24;
-        this.buttonList.add(new GuiStyledButton(ID_ADVANCED, this.panelX + 10, by, 70, 16, tr("gui.tweakos.advanced", "Advanced"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_UPDATE, this.panelX + 86, by, 60, 16, tr("gui.tweakos.update", "Update"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_APPLY, this.previewX + 20, by, 55, 16, tr("gui.tweakos.apply", "Apply"), GuiStyledButton.Style.PRIMARY));
-        this.buttonList.add(new GuiStyledButton(ID_CLOSE, this.previewX + 85, by, 55, 16, tr("gui.tweakos.done", "Close"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_APPLY, this.previewX + 20, by, 70, 16, tr("gui.tweakos.apply", "Apply"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_BACK + 100, this.previewX + 96, by, 55, 16, tr("gui.tweakos.done", "Close"), GuiStyledButton.Style.SECONDARY));
 
         rebuildVisible();
         if (this.selected == null && !this.visible.isEmpty()) {
@@ -138,35 +123,9 @@ public class GuiCosmeticsMenu extends GuiScreen {
         }
     }
 
-    private List<String> buildSubList() {
-        List<String> list = new ArrayList<String>();
-        list.add("all");
-        for (int i = 0; i < DEFAULT_SUBS.length; i++) {
-            list.add(DEFAULT_SUBS[i]);
-        }
-        // Also include any custom categories from catalog.
-        List<String> fromCatalog = CatalogManager.listCategories();
-        for (int i = 0; i < fromCatalog.size(); i++) {
-            String c = fromCatalog.get(i).toLowerCase(Locale.ROOT);
-            if (!list.contains(c)) {
-                list.add(c);
-            }
-        }
-        return list;
-    }
-
-    private String prettySub(String sub) {
-        if (sub == null || sub.isEmpty()) {
-            return "";
-        }
-        return Character.toUpperCase(sub.charAt(0)) + sub.substring(1);
-    }
-
     private void rebuildVisible() {
         String q = this.searchField != null ? this.searchField.getText().trim().toLowerCase(Locale.ROOT) : "";
-        List<CatalogManager.CatalogEntry> src = CatalogManager.getEntriesByCategory(
-                "all".equalsIgnoreCase(this.selectedSub) ? "all" : this.selectedSub
-        );
+        List<CatalogManager.CatalogEntry> src = CatalogManager.getEntriesByCategory(this.selectedCat);
         this.visible = new ArrayList<CatalogManager.CatalogEntry>();
         for (int i = 0; i < src.size(); i++) {
             CatalogManager.CatalogEntry e = src.get(i);
@@ -202,17 +161,27 @@ public class GuiCosmeticsMenu extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) throws IOException {
-        if (button.id == ID_CLOSE) {
+        if (button.id == ID_BACK || button.id == ID_BACK + 100) {
             this.mc.displayGuiScreen(this.parent);
             return;
         }
-        if (button.id == ID_ADVANCED) {
-            this.mc.displayGuiScreen(new GuiTweakOS(this));
+        if (button.id == ID_PRIORITY) {
+            this.mc.displayGuiScreen(new GuiPackPriority(this));
+            return;
+        }
+        if (button.id == ID_ADD) {
+            this.mc.displayGuiScreen(new GuiAddModel(this));
+            return;
+        }
+        if (button.id == ID_CLONE) {
+            boolean ok = ServerPackClone.forceCloneFromServer();
+            this.status = ok ? tr("gui.tweakos.clone_ok", "Server RP cloned") : tr("gui.tweakos.clone_fail", "No server RP");
             return;
         }
         if (button.id == ID_APPLY) {
             if (this.selected != null) {
-                ModelApplier.apply(this.selected);
+                boolean ok = ModelApplier.apply(this.selected);
+                this.status = ok ? tr("gui.tweakos.applied", "Applied") : tr("gui.tweakos.apply_fail", "Apply failed");
             }
             return;
         }
@@ -226,22 +195,18 @@ public class GuiCosmeticsMenu extends GuiScreen {
             });
             return;
         }
-        if (button.id == ID_FRONT) {
-            this.rotateYaw = 20.0F;
+        if (button.id == ID_CAT_HATS) {
+            this.selectedCat = CatalogManager.CAT_HATS;
+            this.scrollRow = 0;
+            this.selected = null;
+            this.initGui();
             return;
         }
-        if (button.id == ID_BACK) {
-            this.rotateYaw = 200.0F;
-            return;
-        }
-        if (button.id >= ID_SUB_BASE && button.id < ID_SUB_BASE + 40) {
-            List<String> subs = buildSubList();
-            int idx = button.id - ID_SUB_BASE;
-            if (idx >= 0 && idx < subs.size()) {
-                this.selectedSub = subs.get(idx);
-                this.scrollRow = 0;
-                this.initGui();
-            }
+        if (button.id == ID_CAT_HAND) {
+            this.selectedCat = CatalogManager.CAT_HAND;
+            this.scrollRow = 0;
+            this.selected = null;
+            this.initGui();
         }
     }
 
@@ -275,34 +240,67 @@ public class GuiCosmeticsMenu extends GuiScreen {
             this.searchField.mouseClicked(mouseX, mouseY, mouseButton);
         }
         if (mouseButton == 0) {
+            // Color swatches on selected card
+            if (this.selected != null && clickVariantOnCard(mouseX, mouseY)) {
+                return;
+            }
+            // Big color swatches under preview
+            if (clickPreviewSwatch(mouseX, mouseY)) {
+                return;
+            }
             int idx = cardIndexAt(mouseX, mouseY);
             if (idx >= 0 && idx < this.visible.size()) {
                 this.selected = this.visible.get(idx);
-                return;
-            }
-            if (mouseX >= this.previewX && mouseX <= this.previewX + this.previewW
-                    && mouseY >= this.previewY && mouseY <= this.previewY + this.previewH - 28) {
-                this.dragging = true;
-                this.dragLastX = mouseX;
                 return;
             }
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
     }
 
-    @Override
-    protected void mouseReleased(int mouseX, int mouseY, int state) {
-        this.dragging = false;
-        super.mouseReleased(mouseX, mouseY, state);
+    private boolean clickPreviewSwatch(int mouseX, int mouseY) {
+        if (this.selected == null || this.selected.variants == null) {
+            return false;
+        }
+        int sx = this.previewX + this.previewW / 2 - (this.selected.variants.size() * 18) / 2;
+        int sy = this.previewY + this.previewH - 36;
+        for (int i = 0; i < this.selected.variants.size(); i++) {
+            int x = sx + i * 18;
+            if (mouseX >= x && mouseX < x + 14 && mouseY >= sy && mouseY < sy + 14) {
+                this.selected.selectedVariantId = this.selected.variants.get(i).id;
+                return true;
+            }
+        }
+        return false;
     }
 
-    @Override
-    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-        if (this.dragging) {
-            this.rotateYaw += (mouseX - this.dragLastX) * 1.8F;
-            this.dragLastX = mouseX;
+    private boolean clickVariantOnCard(int mouseX, int mouseY) {
+        int start = this.scrollRow;
+        int end = Math.min(rows(), start + visibleRows());
+        for (int row = start; row < end; row++) {
+            for (int col = 0; col < COLS; col++) {
+                int index = row * COLS + col;
+                if (index >= this.visible.size()) {
+                    break;
+                }
+                CatalogManager.CatalogEntry entry = this.visible.get(index);
+                if (this.selected == null || !this.selected.id.equals(entry.id)) {
+                    continue;
+                }
+                int x = this.gridX + col * (CARD_W + CARD_GAP);
+                int y = this.gridY + (row - start) * (CARD_H + CARD_GAP);
+                int vx = x + CARD_W - 14;
+                int vy = y + 16;
+                for (int i = 0; i < entry.variants.size() && i < 5; i++) {
+                    int cy = vy + i * 12;
+                    if (mouseX >= vx && mouseX < vx + 10 && mouseY >= cy && mouseY < cy + 10) {
+                        entry.selectedVariantId = entry.variants.get(i).id;
+                        this.selected = entry;
+                        return true;
+                    }
+                }
+            }
         }
-        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+        return false;
     }
 
     private int cardIndexAt(int mouseX, int mouseY) {
@@ -327,54 +325,57 @@ public class GuiCosmeticsMenu extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
-        drawRect(0, 0, this.width, this.height, 0xC0101014);
+        drawRect(0, 0, this.width, this.height, 0xD00C0C10);
 
-        // Outer wardrobe frame
-        drawPanel(this.panelX, this.panelY, this.panelW, this.panelH, 0xF018181E, 0xFF3A3A46);
+        // Main frame
+        drawPanel(this.panelX, this.panelY, this.panelW, this.panelH, 0xF0121218, 0xFF2E2E38);
+
+        // Header
+        this.fontRenderer.drawString(tr("gui.tweakos.wardrobe", "Wardrobe"), this.panelX + 32, this.panelY + 12, 0xFFE8EAF0, false);
+        String catTitle = CatalogManager.CAT_HATS.equals(this.selectedCat)
+                ? tr("gui.tweakos.cat_hats", "Hats")
+                : tr("gui.tweakos.cat_hand", "Hand cosmetics");
+        this.fontRenderer.drawString(catTitle, this.panelX + 100, this.panelY + 12, 0xFFFFD76A, false);
 
         // Left sidebar
-        drawPanel(this.panelX + 6, this.panelY + 6, 108, this.panelH - 36, 0xFF14141A, 0xFF2E2E38);
-        this.fontRenderer.drawString(tr("gui.tweakos.wardrobe", "Wardrobe"), this.panelX + 14, this.panelY + 14, 0xFFE8EAF0, false);
-        this.fontRenderer.drawString("TweakOS", this.panelX + 14, this.panelY + this.panelH - 28, 0xFF8B8E98, false);
-        this.fontRenderer.drawString(tr("gui.tweakos.author", "Created by AyanamiKaede"), this.panelX + 14, this.panelY + this.panelH - 18, 0xFF6E7180, false);
+        drawPanel(this.sideX, this.panelY + 32, this.sideW, this.panelH - 60, 0xFF101016, 0xFF2A2A34);
+        this.fontRenderer.drawString(tr("gui.tweakos.categories", "Categories"), this.sideX + 8, this.panelY + 36, 0xFF8B8E98, false);
+        this.fontRenderer.drawString("TweakOS", this.sideX + 8, this.panelY + this.panelH - 40, 0xFF6E7180, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.author", "Created by AyanamiKaede"), this.sideX + 8, this.panelY + this.panelH - 28, 0xFF555860, false);
 
-        drawNavIconRow(this.panelX + 12, this.panelY + 32, tr("gui.tweakos.tab_outfits", "Outfits"), 0xFF5BD67A);
-        drawNavIconRow(this.panelX + 12, this.panelY + 48, tr("gui.tweakos.tab_skins", "Skins"), 0xFFFF7AB8);
-        drawNavIconRow(this.panelX + 12, this.panelY + 64, tr("gui.tweakos.tab_emotes", "Emotes"), 0xFFFF9A4A);
-        // Active Cosmetics tab
-        drawRect(this.panelX + 8, this.panelY + 78, this.panelX + 110, this.panelY + 92, 0xFF2A3348);
-        this.fontRenderer.drawString(tr("gui.tweakos.tab_cosmetics", "Cosmetics"), this.panelX + 14, this.panelY + 82, 0xFFFFD76A, false);
-
-        // Center header
-        this.fontRenderer.drawString(tr("gui.tweakos.cosmetics_title", "Cosmetics"), this.gridX, this.panelY + 14, 0xFFF2F4FA, false);
-        drawPanel(this.gridX + this.gridW - 114, this.panelY + 28, 108, 18, 0xFF101016, 0xFF3A3A46);
+        // Search
+        drawPanel(this.gridX + this.gridW - 122, this.panelY + 26, 118, 18, 0xFF0C0C12, 0xFF3A3A46);
         if (this.searchField != null) {
             if (this.searchField.getText().isEmpty() && !this.searchField.isFocused()) {
-                this.fontRenderer.drawString(tr("gui.tweakos.search", "Search..."), this.gridX + this.gridW - 108, this.panelY + 33, 0xFF6E7180, false);
+                this.fontRenderer.drawString(tr("gui.tweakos.search", "Search..."), this.gridX + this.gridW - 116, this.panelY + 31, 0xFF6E7180, false);
             }
             this.searchField.drawTextBox();
         }
-        this.fontRenderer.drawString(UpdateManager.getLastStatus(), this.gridX + 90, this.panelY + 14, 0xFF8B8E98, false);
 
-        // Card grid background
-        drawPanel(this.gridX - 2, this.gridY - 2, this.gridW + 4, this.gridH + 4, 0xFF101014, 0xFF2C2C36);
+        String st = this.status != null && !this.status.isEmpty() ? this.status : UpdateManager.getLastStatus();
+        this.fontRenderer.drawString(st, this.gridX, this.panelY + 30, 0xFF8B8E98, false);
+
+        // Grid
+        drawPanel(this.gridX - 2, this.gridY - 2, this.gridW + 4, this.gridH + 4, 0xFF0A0A10, 0xFF2C2C36);
         drawCardGrid(mouseX, mouseY);
 
-        // Preview
-        drawPreview(mouseX, mouseY);
+        // Right model preview (NOT player)
+        drawModelPreview();
+
+        // Draw gear/plus icons over buttons
+        GlStateManager.color(1F, 1F, 1F, 1F);
+        this.mc.getTextureManager().bindTexture(TEX_GEAR);
+        drawModalRectWithCustomSizedTexture(this.previewX + 1, this.panelY + 9, 0, 0, 14, 14, 32, 32);
+        this.mc.getTextureManager().bindTexture(TEX_PLUS);
+        drawModalRectWithCustomSizedTexture(this.previewX + this.previewW - 19, this.panelY + 9, 0, 0, 16, 16, 64, 64);
 
         super.drawScreen(mouseX, mouseY, partialTicks);
         GlStateManager.color(1F, 1F, 1F, 1F);
     }
 
-    private void drawNavIconRow(int x, int y, String label, int color) {
-        drawRect(x, y, x + 8, y + 8, color);
-        this.fontRenderer.drawString(label, x + 12, y, 0xFFC8CAD2, false);
-    }
-
     private void drawCardGrid(int mouseX, int mouseY) {
         if (this.visible.isEmpty()) {
-            String empty = tr("gui.tweakos.empty_catalog", "Catalog is empty");
+            String empty = tr("gui.tweakos.empty_catalog", "Catalog empty — press + to add");
             int w = this.fontRenderer.getStringWidth(empty);
             this.fontRenderer.drawString(empty, this.gridX + (this.gridW - w) / 2, this.gridY + this.gridH / 2, 0xFFFF8E8E, false);
             return;
@@ -397,18 +398,35 @@ public class GuiCosmeticsMenu extends GuiScreen {
 
     private void drawCosmeticCard(int x, int y, CatalogManager.CatalogEntry entry, boolean hovered) {
         boolean sel = this.selected != null && this.selected.id.equals(entry.id);
-        int border = sel ? 0xFFFFD76A : (hovered ? 0xFF8A8A98 : 0xFF3A3A46);
-        drawPanel(x, y, CARD_W, CARD_H, 0xFF1A1A22, border);
+        int border = sel ? 0xFFFFF0C0 : (hovered ? 0xFF8A8A98 : 0xFF3A3A46);
+        drawPanel(x, y, CARD_W, CARD_H, 0xFF1A1A20, border);
 
-        // Pedestal / icon well
-        drawRect(x + 10, y + 10, x + CARD_W - 10, y + 58, 0xFF0C0C12);
-        drawRect(x + 18, y + 50, x + CARD_W - 18, y + 56, 0xFF2A2A34);
+        // Preview well
+        drawRect(x + 6, y + 8, x + CARD_W - 18, y + 68, 0xFF0C0C12);
+        File preview = entry.resolvePreviewFile();
+        ResourceLocation loc = PreviewTextureCache.getOrLoad(preview);
+        if (loc != null) {
+            PreviewTextureCache.draw(loc, x + 10, y + 12, 48, 48);
+        } else {
+            // Pedestal placeholder
+            drawRect(x + 22, y + 48, x + CARD_W - 34, y + 56, 0xFF2A2A34);
+            this.fontRenderer.drawString("?", x + 28, y + 28, 0xFF5A5A68, false);
+        }
 
-        drawItemIcon(entry, x + CARD_W / 2 - 8, y + 22);
+        // Vertical color swatches (Essential-like)
+        int vx = x + CARD_W - 14;
+        int vy = y + 16;
+        for (int i = 0; i < entry.variants.size() && i < 5; i++) {
+            CatalogManager.ColorVariant v = entry.variants.get(i);
+            int cy = vy + i * 12;
+            boolean on = v.id.equalsIgnoreCase(entry.selectedVariantId);
+            drawRect(vx - 1, cy - 1, vx + 11, cy + 11, on ? 0xFFFFFFFF : 0xFF000000);
+            drawRect(vx, cy, vx + 10, cy + 10, v.parseColorArgb());
+        }
 
-        if ("weapons".equalsIgnoreCase(entry.category) || "hat".equalsIgnoreCase(entry.category)) {
-            drawRect(x + 4, y + 4, x + 28, y + 12, 0xFF2E8B57);
-            this.fontRenderer.drawString("NEW", x + 6, y + 5, 0xFFE8FFE8, false);
+        if (sel) {
+            // checkmark
+            this.fontRenderer.drawString("v", x + CARD_W - 12, y + CARD_H - 14, 0xFF5BD67A, false);
         }
 
         String label = entry.name;
@@ -421,62 +439,48 @@ public class GuiCosmeticsMenu extends GuiScreen {
         this.fontRenderer.drawString(label, x + 5, y + CARD_H - 12, sel ? 0xFFFFF0C0 : 0xFFE6E8F0, false);
     }
 
-    private void drawPreview(int mouseX, int mouseY) {
-        drawPanel(this.previewX, this.previewY, this.previewW, this.previewH, 0xFF121218, 0xFF3A3A46);
+    private void drawModelPreview() {
+        drawPanel(this.previewX, this.previewY, this.previewW, this.previewH, 0xFF101016, 0xFF3A3A46);
+        this.fontRenderer.drawString(tr("gui.tweakos.preview", "Preview"), this.previewX + 8, this.previewY + 6, 0xFF8B8E98, false);
 
-        // Outfit name bar
-        drawPanel(this.previewX + 20, this.previewY + 8, this.previewW - 40, 14, 0xFF1A1A22, 0xFF3A3A46);
-        int nw = this.fontRenderer.getStringWidth(this.outfitName);
-        this.fontRenderer.drawString(this.outfitName, this.previewX + (this.previewW - nw) / 2, this.previewY + 11, 0xFFE8EAF0, false);
-
-        if (this.mc.player != null) {
-            int entX = this.previewX + this.previewW / 2;
-            int entY = this.previewY + this.previewH - 48;
-            GuiInventory.drawEntityOnScreen(entX, entY, 55, this.rotateYaw, -10.0F, (EntityLivingBase) this.mc.player);
+        if (this.selected == null) {
+            String none = tr("gui.tweakos.no_selection", "Select a model");
+            int w = this.fontRenderer.getStringWidth(none);
+            this.fontRenderer.drawString(none, this.previewX + (this.previewW - w) / 2, this.previewY + this.previewH / 2, 0xFF6E7180, false);
+            return;
         }
 
-        // Fake color swatches (visual Essential-like; wiring later)
-        int[] colors = new int[] {0xFF4A7CFF, 0xFF5BD67A, 0xFFFF9A4A, 0xFFFF7AB8};
-        int sx = this.previewX + this.previewW / 2 - 34;
-        int sy = this.previewY + this.previewH - 40;
-        for (int i = 0; i < colors.length; i++) {
-            drawRect(sx + i * 18, sy, sx + i * 18 + 14, sy + 10, colors[i]);
+        File preview = this.selected.resolvePreviewFile();
+        ResourceLocation loc = PreviewTextureCache.getOrLoad(preview);
+        int imgW = this.previewW - 24;
+        int imgH = this.previewH - 70;
+        int ix = this.previewX + 12;
+        int iy = this.previewY + 22;
+        drawRect(ix, iy, ix + imgW, iy + imgH, 0xFF0A0A10);
+        if (loc != null) {
+            PreviewTextureCache.draw(loc, ix + 8, iy + 8, imgW - 16, imgH - 16);
+        } else {
+            String miss = tr("gui.tweakos.no_preview", "Add preview.png");
+            int w = this.fontRenderer.getStringWidth(miss);
+            this.fontRenderer.drawString(miss, this.previewX + (this.previewW - w) / 2, iy + imgH / 2, 0xFF6E7180, false);
         }
 
-        if (this.selected != null) {
-            String n = this.selected.name;
-            if (this.fontRenderer.getStringWidth(n) > this.previewW - 16) {
-                while (this.fontRenderer.getStringWidth(n + "..") > this.previewW - 16 && n.length() > 3) {
-                    n = n.substring(0, n.length() - 1);
-                }
-                n = n + "..";
+        String n = this.selected.name;
+        int nw = this.fontRenderer.getStringWidth(n);
+        this.fontRenderer.drawString(n, this.previewX + (this.previewW - nw) / 2, this.previewY + this.previewH - 52, 0xFFE8EAF0, false);
+
+        // Color bar
+        if (this.selected.variants != null) {
+            int sx = this.previewX + this.previewW / 2 - (this.selected.variants.size() * 18) / 2;
+            int sy = this.previewY + this.previewH - 36;
+            for (int i = 0; i < this.selected.variants.size(); i++) {
+                CatalogManager.ColorVariant v = this.selected.variants.get(i);
+                int x = sx + i * 18;
+                boolean on = v.id.equalsIgnoreCase(this.selected.selectedVariantId);
+                drawRect(x - 1, sy - 1, x + 15, sy + 15, on ? 0xFFFFFFFF : 0xFF222228);
+                drawRect(x, sy, x + 14, sy + 14, v.parseColorArgb());
             }
-            this.fontRenderer.drawString(n, this.previewX + 8, this.previewY + this.previewH - 54, 0xFFB8CCFF, false);
         }
-    }
-
-    private void drawItemIcon(CatalogManager.CatalogEntry entry, int x, int y) {
-        ItemStack stack = resolveIcon(entry);
-        GlStateManager.pushMatrix();
-        RenderHelper.enableGUIStandardItemLighting();
-        GlStateManager.enableDepth();
-        this.itemRender.renderItemAndEffectIntoGUI(stack, x, y);
-        RenderHelper.disableStandardItemLighting();
-        GlStateManager.popMatrix();
-    }
-
-    private ItemStack resolveIcon(CatalogManager.CatalogEntry entry) {
-        try {
-            if (entry.iconItem != null && entry.iconItem.contains(":")) {
-                String[] p = entry.iconItem.split(":", 2);
-                Item item = Item.REGISTRY.getObject(new ResourceLocation(p[0], p[1]));
-                if (item != null) {
-                    return new ItemStack(item);
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return new ItemStack(Items.PAPER);
     }
 
     private void drawPanel(int x, int y, int w, int h, int fill, int border) {

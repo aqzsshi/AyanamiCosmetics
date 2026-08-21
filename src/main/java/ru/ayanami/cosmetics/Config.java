@@ -15,6 +15,9 @@ import java.util.Locale;
  */
 public final class Config {
 
+    public static final String SERVER_TOKEN = "__server__";
+    public static final String WORK_PACK_TOKEN = "work_pack";
+
     private static final String CAT_GENERAL = Configuration.CATEGORY_GENERAL;
     private static final String CAT_SERVERS = "server_profiles";
 
@@ -23,6 +26,11 @@ public final class Config {
     private static boolean overrideEnabled = false;
     /** Highest priority first. */
     private static final List<String> activePacks = new ArrayList<String>();
+    /**
+     * Full priority list (highest first). May include {@link #SERVER_TOKEN} and {@link #WORK_PACK_TOKEN}.
+     * Packs above SERVER_TOKEN override the server RP; packs below are lower priority.
+     */
+    private static final List<String> packPriority = new ArrayList<String>();
     private static final List<String> favorites = new ArrayList<String>();
     /** Entries: host|pack1,pack2|true/false */
     private static final List<String> serverProfiles = new ArrayList<String>();
@@ -69,6 +77,19 @@ public final class Config {
             favorites.clear();
             favorites.addAll(sanitizeNames(favs));
 
+            String[] prio = configuration.getStringList(
+                    "packPriority", CAT_GENERAL, new String[0],
+                    "Pack priority (first = highest). Use __server__ for the server resource pack and work_pack for TweakOS clone.");
+            packPriority.clear();
+            if (prio != null) {
+                for (int i = 0; i < prio.length; i++) {
+                    if (prio[i] != null && !prio[i].trim().isEmpty()) {
+                        packPriority.add(prio[i].trim());
+                    }
+                }
+            }
+            ensureDefaultPriority();
+
             String[] profiles = configuration.getStringList(
                     "profiles", CAT_SERVERS, new String[0],
                     "Per-server profiles: host|pack1,pack2|true  (true/false = override enabled)");
@@ -82,6 +103,7 @@ public final class Config {
             TweakOS.LOGGER.warn("[TweakOS] Failed to load config: {}", e.toString());
             overrideEnabled = false;
             activePacks.clear();
+            packPriority.clear();
             favorites.clear();
             serverProfiles.clear();
             autoApplyServerProfile = true;
@@ -98,6 +120,7 @@ public final class Config {
             configuration.get(CAT_GENERAL, "overrideEnabled", false).set(overrideEnabled);
             configuration.get(CAT_GENERAL, "autoApplyServerProfile", true).set(autoApplyServerProfile);
             configuration.get(CAT_GENERAL, "activePacks", new String[0]).set(activePacks.toArray(new String[0]));
+            configuration.get(CAT_GENERAL, "packPriority", new String[0]).set(packPriority.toArray(new String[0]));
             configuration.get(CAT_GENERAL, "favorites", new String[0]).set(favorites.toArray(new String[0]));
             configuration.get(CAT_GENERAL, "selectedPackName", "").set(activePacks.isEmpty() ? "" : activePacks.get(0));
             configuration.get(CAT_SERVERS, "profiles", new String[0]).set(serverProfiles.toArray(new String[0]));
@@ -149,7 +172,113 @@ public final class Config {
         if (packs != null) {
             activePacks.addAll(sanitizeNames(packs.toArray(new String[0])));
         }
+        syncPriorityFromActive();
         save();
+    }
+
+    public static List<String> getPackPriority() {
+        ensureDefaultPriority();
+        return Collections.unmodifiableList(packPriority);
+    }
+
+    public static void setPackPriority(List<String> order) {
+        packPriority.clear();
+        if (order != null) {
+            LinkedHashSet<String> seen = new LinkedHashSet<String>();
+            for (int i = 0; i < order.size(); i++) {
+                String n = order.get(i);
+                if (n == null) {
+                    continue;
+                }
+                n = n.trim();
+                if (!n.isEmpty() && seen.add(n)) {
+                    packPriority.add(n);
+                }
+            }
+        }
+        ensureDefaultPriority();
+        // Rebuild activePacks = everything above server (except tokens handled in loader)
+        activePacks.clear();
+        for (int i = 0; i < packPriority.size(); i++) {
+            String n = packPriority.get(i);
+            if (SERVER_TOKEN.equals(n)) {
+                break;
+            }
+            if (!WORK_PACK_TOKEN.equals(n)) {
+                activePacks.add(n);
+            }
+        }
+        save();
+    }
+
+    public static void movePackPriority(int index, int delta) {
+        ensureDefaultPriority();
+        int target = index + delta;
+        if (index < 0 || index >= packPriority.size() || target < 0 || target >= packPriority.size()) {
+            return;
+        }
+        String item = packPriority.remove(index);
+        packPriority.add(target, item);
+        setPackPriority(new ArrayList<String>(packPriority));
+    }
+
+    /** Packs that should override the server (above __server__). Highest first. */
+    public static List<String> getPacksAboveServer() {
+        ensureDefaultPriority();
+        List<String> above = new ArrayList<String>();
+        for (int i = 0; i < packPriority.size(); i++) {
+            String n = packPriority.get(i);
+            if (SERVER_TOKEN.equals(n)) {
+                break;
+            }
+            above.add(n);
+        }
+        return above;
+    }
+
+    private static void ensureDefaultPriority() {
+        if (packPriority.isEmpty()) {
+            packPriority.add(WORK_PACK_TOKEN);
+            for (int i = 0; i < activePacks.size(); i++) {
+                if (!WORK_PACK_TOKEN.equals(activePacks.get(i)) && !SERVER_TOKEN.equals(activePacks.get(i))) {
+                    packPriority.add(activePacks.get(i));
+                }
+            }
+            packPriority.add(SERVER_TOKEN);
+        } else {
+            if (!packPriority.contains(SERVER_TOKEN)) {
+                packPriority.add(SERVER_TOKEN);
+            }
+            if (!packPriority.contains(WORK_PACK_TOKEN)) {
+                packPriority.add(0, WORK_PACK_TOKEN);
+            }
+        }
+    }
+
+    private static void syncPriorityFromActive() {
+        List<String> next = new ArrayList<String>();
+        next.add(WORK_PACK_TOKEN);
+        for (int i = 0; i < activePacks.size(); i++) {
+            String n = activePacks.get(i);
+            if (!WORK_PACK_TOKEN.equals(n) && !SERVER_TOKEN.equals(n) && !next.contains(n)) {
+                next.add(n);
+            }
+        }
+        next.add(SERVER_TOKEN);
+        // Keep any packs that were below server
+        boolean past = false;
+        for (int i = 0; i < packPriority.size(); i++) {
+            String n = packPriority.get(i);
+            if (SERVER_TOKEN.equals(n)) {
+                past = true;
+                continue;
+            }
+            if (past && !next.contains(n) && !WORK_PACK_TOKEN.equals(n)) {
+                next.add(n);
+            }
+        }
+        packPriority.clear();
+        packPriority.addAll(next);
     }
 
     public static void addActivePack(String packName) {

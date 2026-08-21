@@ -2,9 +2,9 @@ package ru.ayanami.cosmetics;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -12,12 +12,14 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 /**
- * Adds a cosmetics button next to the player in the survival inventory.
+ * Left-protruding wardrobe tab next to the player in GuiInventory (Essential-like plate).
  */
 @SideOnly(Side.CLIENT)
 public class InventoryCosmeticsButton {
 
     public static final int BUTTON_ID = 87421;
+    private static final ResourceLocation TAB_TEX =
+            new ResourceLocation(TweakOS.MODID, "textures/gui/inventory_tab.png");
 
     public static void init() {
         MinecraftForge.EVENT_BUS.register(new InventoryCosmeticsButton());
@@ -32,9 +34,9 @@ public class InventoryCosmeticsButton {
         int left = inventory.getGuiLeft();
         int top = inventory.getGuiTop();
 
-        // Near the player model (left side of inventory panel).
-        int x = left + 6;
-        int y = top + 8;
+        // Plate sticks out to the LEFT of the inventory / player area.
+        int x = left - 24;
+        int y = top + 6;
         event.getButtonList().add(new CosmeticsInventoryButton(BUTTON_ID, x, y));
     }
 
@@ -50,7 +52,7 @@ public class InventoryCosmeticsButton {
     public static class CosmeticsInventoryButton extends GuiButton {
 
         public CosmeticsInventoryButton(int id, int x, int y) {
-            super(id, x, y, 20, 20, "");
+            super(id, x, y, 24, 24, "");
         }
 
         @Override
@@ -58,22 +60,19 @@ public class InventoryCosmeticsButton {
             if (!this.visible) {
                 return;
             }
-            this.hovered = mouseX >= this.x && mouseY >= this.y && mouseX < this.x + this.width && mouseY < this.y + this.height;
+            this.hovered = mouseX >= this.x && mouseY >= this.y
+                    && mouseX < this.x + this.width && mouseY < this.y + this.height;
 
-            int bg = this.hovered ? 0xFF3A4F78 : 0xFF2A2A32;
-            int border = this.hovered ? 0xFF9BBCFF : 0xFF6F98FF;
-            drawRect(this.x, this.y, this.x + this.width, this.y + this.height, border);
-            drawRect(this.x + 1, this.y + 1, this.x + this.width - 1, this.y + this.height - 1, bg);
-
-            // Simple "cosmetics" glyph (star-like).
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-            String icon = "*";
-            int tw = mc.fontRenderer.getStringWidth(icon);
-            mc.fontRenderer.drawString(icon, this.x + (this.width - tw) / 2, this.y + 6, 0xFFE8F0FF, false);
+            GlStateManager.enableBlend();
+            mc.getTextureManager().bindTexture(TAB_TEX);
+            // Stretch 24x24 texture
+            drawModalRectWithCustomSizedTexture(this.x, this.y, 0, 0, 24, 24, 24, 24);
 
             if (this.hovered) {
-                // Tooltip drawn by parent is awkward here; small label under button area via screen later.
+                drawRect(this.x, this.y, this.x + this.width, this.y + this.height, 0x33FFFFFF);
             }
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         }
     }
 }

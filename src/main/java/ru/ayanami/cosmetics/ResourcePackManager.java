@@ -303,27 +303,35 @@ public final class ResourcePackManager {
         }
     }
 
-    private static void alwaysIncludeOverrideDir(List<IResourcePack> packs, List<String> names) {
+    private static void attachWorkPack(List<IResourcePack> packs, List<String> names) {
         try {
-            File overrideDir = ru.ayanami.cosmetics.catalog.CatalogManager.getOverridePackDir();
+            File overrideDir = ru.ayanami.cosmetics.catalog.CatalogManager.getWorkPackDir();
+            ru.ayanami.cosmetics.catalog.CatalogManager.ensureWorkPackMeta();
             if (overrideDir.isDirectory()) {
                 File assets = new File(overrideDir, "assets");
                 if (assets.isDirectory() || new File(overrideDir, "pack.mcmeta").isFile()) {
-                    packs.add(0, new FolderResourcePack(overrideDir));
-                    names.add(0, "override_pack");
+                    packs.add(new FolderResourcePack(overrideDir));
+                    names.add(Config.WORK_PACK_TOKEN);
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("[TweakOS] Could not attach override_pack: {}", e.toString());
+            LOGGER.warn("[TweakOS] Could not attach work_pack: {}", e.toString());
         }
     }
 
+    private static void alwaysIncludeOverrideDir(List<IResourcePack> packs, List<String> names) {
+        attachWorkPack(packs, names);
+    }
+
     /**
-     * Loads all active packs in priority order. Returns empty list if none valid.
+     * Loads packs above {@link Config#SERVER_TOKEN} in priority order.
      */
     public static synchronized List<IResourcePack> loadActiveOverridePacks(boolean forceReload) {
         ensureSelectedPackExists();
-        List<String> names = new ArrayList<String>(Config.getActivePacks());
+        List<String> names = new ArrayList<String>(Config.getPacksAboveServer());
+        if (names.isEmpty()) {
+            names.add(Config.WORK_PACK_TOKEN);
+        }
         String key = "ovr|" + buildStackKey(names);
         if (!forceReload && key.equals(cachedStackKey) && !cachedOverridePacks.isEmpty()) {
             return cachedOverridePacks;
@@ -332,13 +340,17 @@ public final class ResourcePackManager {
         List<IResourcePack> packs = new ArrayList<IResourcePack>();
         List<String> resolvedNames = new ArrayList<String>();
         for (int i = 0; i < names.size(); i++) {
-            // skip reserved name
-            if ("override_pack".equalsIgnoreCase(names.get(i))) {
+            String name = names.get(i);
+            if (Config.SERVER_TOKEN.equalsIgnoreCase(name)) {
                 continue;
             }
-            File packFile = findPackFile(names.get(i));
+            if (Config.WORK_PACK_TOKEN.equalsIgnoreCase(name) || "override_pack".equalsIgnoreCase(name)) {
+                attachWorkPack(packs, resolvedNames);
+                continue;
+            }
+            File packFile = findPackFile(name);
             if (packFile == null) {
-                LOGGER.warn("[TweakOS] Failed to load resource pack: file not found ({})", names.get(i));
+                LOGGER.warn("[TweakOS] Failed to load resource pack: file not found ({})", name);
                 continue;
             }
             String validationError = validatePack(packFile);
@@ -359,7 +371,16 @@ public final class ResourcePackManager {
             }
         }
 
-        alwaysIncludeOverrideDir(packs, resolvedNames);
+        boolean hasWork = false;
+        for (int i = 0; i < resolvedNames.size(); i++) {
+            if (Config.WORK_PACK_TOKEN.equals(resolvedNames.get(i))) {
+                hasWork = true;
+                break;
+            }
+        }
+        if (!hasWork) {
+            attachWorkPack(packs, resolvedNames);
+        }
 
         cachedOverridePacks = packs;
         cachedOverrideNames = resolvedNames;

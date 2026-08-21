@@ -1,8 +1,9 @@
 package ru.ayanami.cosmetics.catalog;
 
-import ru.ayanami.cosmetics.TweakOS;
 import ru.ayanami.cosmetics.ResourcePackManager;
+import ru.ayanami.cosmetics.TweakOS;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,8 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * Applies a catalog entry into the local override_pack by copying model.json
- * (and optional textures) to the replacePath so the game keeps original resource names.
+ * Applies catalog model + selected color texture into the work_pack (server RP clone).
  */
 public final class ModelApplier {
 
@@ -19,30 +19,57 @@ public final class ModelApplier {
     }
 
     public static boolean apply(CatalogManager.CatalogEntry entry) {
+        return apply(entry, entry == null ? null : entry.selectedVariantId);
+    }
+
+    public static boolean apply(CatalogManager.CatalogEntry entry, @Nullable String variantId) {
         if (entry == null || entry.replacePath == null || entry.replacePath.trim().isEmpty()) {
             TweakOS.LOGGER.warn("[TweakOS] Catalog entry missing replacePath");
             return false;
         }
-        if (entry.modelFile == null || !entry.modelFile.isFile()) {
-            TweakOS.LOGGER.warn("[TweakOS] Catalog entry {} has no model.json — placeholder apply skipped", entry.id);
-            // Still create a marker so workflow is testable.
-            return writePlaceholder(entry);
-        }
-        try {
-            File dest = new File(CatalogManager.getOverridePackDir(), normalizePath(entry.replacePath));
-            if (dest.getParentFile() != null) {
-                dest.getParentFile().mkdirs();
-            }
-            copyFile(entry.modelFile, dest);
+        CatalogManager.ensureWorkPackMeta();
+        ServerPackClone.ensureClonedFromServer();
 
-            // Copy sibling png/json textures if present.
+        if (variantId != null && !variantId.isEmpty()) {
+            entry.selectedVariantId = variantId;
+        }
+        CatalogManager.ColorVariant variant = entry.getSelectedVariant();
+
+        try {
+            File work = CatalogManager.getWorkPackDir();
+
+            if (entry.modelFile != null && entry.modelFile.isFile()) {
+                File dest = new File(work, normalizePath(entry.replacePath));
+                if (dest.getParentFile() != null) {
+                    dest.getParentFile().mkdirs();
+                }
+                copyFile(entry.modelFile, dest);
+            }
+
+            if (variant != null) {
+                File texSrc = variant.resolveTexture(entry.folder);
+                String texDestPath = entry.replaceTexture;
+                if (texDestPath == null || texDestPath.trim().isEmpty()) {
+                    // Default: store under tweakos catalog assets; also copy next to model if replaceTexture empty
+                    texDestPath = "assets/tweakos_catalog/" + entry.id + "/" + variant.id + ".png";
+                }
+                if (texSrc != null && texSrc.isFile()) {
+                    File texDest = new File(work, normalizePath(texDestPath));
+                    if (texDest.getParentFile() != null) {
+                        texDest.getParentFile().mkdirs();
+                    }
+                    copyFile(texSrc, texDest);
+                }
+            }
+
+            // Copy any loose pngs from entry root except preview
             File[] files = entry.folder.listFiles();
             if (files != null) {
                 for (int i = 0; i < files.length; i++) {
                     File f = files[i];
                     String n = f.getName().toLowerCase();
-                    if (f.isFile() && (n.endsWith(".png") || n.endsWith(".mcmeta")) && !"pack.png".equals(n)) {
-                        File texDest = new File(CatalogManager.getOverridePackDir(), "assets/ayanami_catalog/" + entry.id + "/" + f.getName());
+                    if (f.isFile() && n.endsWith(".png") && !"preview.png".equals(n) && !"pack.png".equals(n)) {
+                        File texDest = new File(work, "assets/tweakos_catalog/" + entry.id + "/" + f.getName());
                         if (texDest.getParentFile() != null) {
                             texDest.getParentFile().mkdirs();
                         }
@@ -51,38 +78,13 @@ public final class ModelApplier {
                 }
             }
 
-            // Ensure override folder pack is in active stack.
-            String overrideName = CatalogManager.getOverridePackDir().getName();
-            // Use absolute folder via installing as resource pack path name "override_pack" under config — ResourcePackManager looks in resourcepacks.
-            // So we also mirror/link by adding config override as a selectable pack via a stub in resourcepacks OR load FolderResourcePack directly.
             ResourcePackManager.ensureOverridePackInStack();
             ResourcePackManager.reloadResourcesFromGui();
-            TweakOS.LOGGER.info("[TweakOS] Applied catalog model {} -> {}", entry.id, entry.replacePath);
+            TweakOS.LOGGER.info("[TweakOS] Applied {} variant {} -> {}", entry.id,
+                    variant == null ? "-" : variant.id, entry.replacePath);
             return true;
         } catch (Exception e) {
             TweakOS.LOGGER.warn("[TweakOS] Failed to apply {}: {}", entry.id, e.toString());
-            return false;
-        }
-    }
-
-    private static boolean writePlaceholder(CatalogManager.CatalogEntry entry) {
-        try {
-            File dest = new File(CatalogManager.getOverridePackDir(), normalizePath(entry.replacePath));
-            if (dest.getParentFile() != null) {
-                dest.getParentFile().mkdirs();
-            }
-            // Do not overwrite real models with junk if replace path exists and no model — skip.
-            if (dest.exists()) {
-                return false;
-            }
-            FileOutputStream out = new FileOutputStream(dest);
-            String json = "{\n  \"parent\": \"item/handheld\",\n  \"textures\": {\n    \"layer0\": \"items/diamond_sword\"\n  }\n}\n";
-            out.write(json.getBytes("UTF-8"));
-            out.close();
-            ResourcePackManager.ensureOverridePackInStack();
-            ResourcePackManager.reloadResourcesFromGui();
-            return true;
-        } catch (Exception e) {
             return false;
         }
     }

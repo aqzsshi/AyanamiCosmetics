@@ -53,6 +53,7 @@ public class ClientEvents {
             public void run() {
                 ResourcePackManager.ensureSelectedPackExists();
                 ResourcePackManager.applyServerProfileIfAny();
+                ru.ayanami.cosmetics.catalog.ServerPackClone.ensureClonedFromServer();
                 ResourcePackManager.syncOverrideState(true);
             }
         });
