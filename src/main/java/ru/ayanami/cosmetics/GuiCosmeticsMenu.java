@@ -123,14 +123,14 @@ public class GuiCosmeticsMenu extends GuiScreen {
         }
 
         // Preview controls
-        this.buttonList.add(new GuiStyledButton(ID_FRONT, this.previewX + 18, this.previewY + this.previewH - 22, 50, 14, tr("gui.ayanamicosmetics.front", "Front"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_BACK, this.previewX + 78, this.previewY + this.previewH - 22, 50, 14, tr("gui.ayanamicosmetics.back", "Back"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_FRONT, this.previewX + 18, this.previewY + this.previewH - 22, 50, 14, tr("gui.tweakos.front", "Front"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_BACK, this.previewX + 78, this.previewY + this.previewH - 22, 50, 14, tr("gui.tweakos.back", "Back"), GuiStyledButton.Style.SECONDARY));
 
         int by = this.panelY + this.panelH - 24;
-        this.buttonList.add(new GuiStyledButton(ID_ADVANCED, this.panelX + 10, by, 70, 16, tr("gui.ayanamicosmetics.advanced", "Advanced"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_UPDATE, this.panelX + 86, by, 60, 16, tr("gui.ayanamicosmetics.update", "Update"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_APPLY, this.previewX + 20, by, 55, 16, tr("gui.ayanamicosmetics.apply", "Apply"), GuiStyledButton.Style.PRIMARY));
-        this.buttonList.add(new GuiStyledButton(ID_CLOSE, this.previewX + 85, by, 55, 16, tr("gui.ayanamicosmetics.done", "Close"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_ADVANCED, this.panelX + 10, by, 70, 16, tr("gui.tweakos.advanced", "Advanced"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_UPDATE, this.panelX + 86, by, 60, 16, tr("gui.tweakos.update", "Update"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_APPLY, this.previewX + 20, by, 55, 16, tr("gui.tweakos.apply", "Apply"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_CLOSE, this.previewX + 85, by, 55, 16, tr("gui.tweakos.done", "Close"), GuiStyledButton.Style.SECONDARY));
 
         rebuildVisible();
         if (this.selected == null && !this.visible.isEmpty()) {
@@ -207,7 +207,7 @@ public class GuiCosmeticsMenu extends GuiScreen {
             return;
         }
         if (button.id == ID_ADVANCED) {
-            this.mc.displayGuiScreen(new GuiAyanamiCosmetics(this));
+            this.mc.displayGuiScreen(new GuiTweakOs(this));
             return;
         }
         if (button.id == ID_APPLY) {
@@ -334,21 +334,23 @@ public class GuiCosmeticsMenu extends GuiScreen {
 
         // Left sidebar
         drawPanel(this.panelX + 6, this.panelY + 6, 108, this.panelH - 36, 0xFF14141A, 0xFF2E2E38);
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.wardrobe", "Wardrobe"), this.panelX + 14, this.panelY + 14, 0xFFE8EAF0, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.wardrobe", "Wardrobe"), this.panelX + 14, this.panelY + 14, 0xFFE8EAF0, false);
+        this.fontRenderer.drawString("TweakOs", this.panelX + 14, this.panelY + this.panelH - 28, 0xFF8B8E98, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.author", "Created by AyanamiKaede"), this.panelX + 14, this.panelY + this.panelH - 18, 0xFF6E7180, false);
 
-        drawNavIconRow(this.panelX + 12, this.panelY + 32, tr("gui.ayanamicosmetics.tab_outfits", "Outfits"), 0xFF5BD67A);
-        drawNavIconRow(this.panelX + 12, this.panelY + 48, tr("gui.ayanamicosmetics.tab_skins", "Skins"), 0xFFFF7AB8);
-        drawNavIconRow(this.panelX + 12, this.panelY + 64, tr("gui.ayanamicosmetics.tab_emotes", "Emotes"), 0xFFFF9A4A);
+        drawNavIconRow(this.panelX + 12, this.panelY + 32, tr("gui.tweakos.tab_outfits", "Outfits"), 0xFF5BD67A);
+        drawNavIconRow(this.panelX + 12, this.panelY + 48, tr("gui.tweakos.tab_skins", "Skins"), 0xFFFF7AB8);
+        drawNavIconRow(this.panelX + 12, this.panelY + 64, tr("gui.tweakos.tab_emotes", "Emotes"), 0xFFFF9A4A);
         // Active Cosmetics tab
         drawRect(this.panelX + 8, this.panelY + 78, this.panelX + 110, this.panelY + 92, 0xFF2A3348);
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.tab_cosmetics", "Cosmetics"), this.panelX + 14, this.panelY + 82, 0xFFFFD76A, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.tab_cosmetics", "Cosmetics"), this.panelX + 14, this.panelY + 82, 0xFFFFD76A, false);
 
         // Center header
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.cosmetics_title", "Cosmetics"), this.gridX, this.panelY + 14, 0xFFF2F4FA, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.cosmetics_title", "Cosmetics"), this.gridX, this.panelY + 14, 0xFFF2F4FA, false);
         drawPanel(this.gridX + this.gridW - 114, this.panelY + 28, 108, 18, 0xFF101016, 0xFF3A3A46);
         if (this.searchField != null) {
             if (this.searchField.getText().isEmpty() && !this.searchField.isFocused()) {
-                this.fontRenderer.drawString(tr("gui.ayanamicosmetics.search", "Search..."), this.gridX + this.gridW - 108, this.panelY + 33, 0xFF6E7180, false);
+                this.fontRenderer.drawString(tr("gui.tweakos.search", "Search..."), this.gridX + this.gridW - 108, this.panelY + 33, 0xFF6E7180, false);
             }
             this.searchField.drawTextBox();
         }
@@ -372,7 +374,7 @@ public class GuiCosmeticsMenu extends GuiScreen {
 
     private void drawCardGrid(int mouseX, int mouseY) {
         if (this.visible.isEmpty()) {
-            String empty = tr("gui.ayanamicosmetics.empty_catalog", "Catalog is empty");
+            String empty = tr("gui.tweakos.empty_catalog", "Catalog is empty");
             int w = this.fontRenderer.getStringWidth(empty);
             this.fontRenderer.drawString(empty, this.gridX + (this.gridW - w) / 2, this.gridY + this.gridH / 2, 0xFFFF8E8E, false);
             return;

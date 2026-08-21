@@ -26,7 +26,7 @@ import java.util.Locale;
  * search + filters on top, pack cards on the left, preview/details on the right.
  */
 @SideOnly(Side.CLIENT)
-public class GuiAyanamiCosmetics extends GuiScreen {
+public class GuiTweakOs extends GuiScreen {
 
     private static final int ID_TOGGLE = 1;
     private static final int ID_RELOAD = 2;
@@ -82,7 +82,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
     private ResourceLocation previewLocation;
     private String previewTexturePack;
 
-    public GuiAyanamiCosmetics(GuiScreen parent) {
+    public GuiTweakOs(GuiScreen parent) {
         this.parent = parent;
     }
 
@@ -144,20 +144,20 @@ public class GuiAyanamiCosmetics extends GuiScreen {
                 btnY,
                 78,
                 18,
-                on ? tr("gui.ayanamicosmetics.disable", "Override OFF") : tr("gui.ayanamicosmetics.enable", "Override ON"),
+                on ? tr("gui.tweakos.disable", "Override OFF") : tr("gui.tweakos.enable", "Override ON"),
                 on ? GuiStyledButton.Style.DANGER : GuiStyledButton.Style.PRIMARY
         ));
-        this.buttonList.add(new GuiStyledButton(ID_SAVE_SERVER, this.panelX + 96, btnY, 78, 18, tr("gui.ayanamicosmetics.save_server", "Save IP"), GuiStyledButton.Style.PRIMARY));
-        this.buttonList.add(new GuiStyledButton(ID_RELOAD, this.panelX + 180, btnY, 54, 18, tr("gui.ayanamicosmetics.reload_short", "Reload"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_KEYBINDS, this.panelX + 240, btnY, 50, 18, tr("gui.ayanamicosmetics.keybinds", "Keys"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_DONE, this.panelX + this.panelW - 62, btnY, 50, 18, tr("gui.ayanamicosmetics.done", "Done"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_SAVE_SERVER, this.panelX + 96, btnY, 78, 18, tr("gui.tweakos.save_server", "Save IP"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_RELOAD, this.panelX + 180, btnY, 54, 18, tr("gui.tweakos.reload_short", "Reload"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_KEYBINDS, this.panelX + 240, btnY, 50, 18, tr("gui.tweakos.keybinds", "Keys"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_DONE, this.panelX + this.panelW - 62, btnY, 50, 18, tr("gui.tweakos.done", "Done"), GuiStyledButton.Style.SECONDARY));
 
         // Preview action buttons
         int px = this.previewX + 8;
         int py = this.previewY + this.previewH - 52;
-        this.buttonList.add(new GuiStyledButton(ID_ADD_STACK, px, py, 64, 14, tr("gui.ayanamicosmetics.add_stack", "+ Stack"), GuiStyledButton.Style.PRIMARY));
-        this.buttonList.add(new GuiStyledButton(ID_REMOVE_STACK, px + 68, py, 64, 14, tr("gui.ayanamicosmetics.rem_stack", "- Stack"), GuiStyledButton.Style.SECONDARY));
-        this.buttonList.add(new GuiStyledButton(ID_FAVORITE, px, py + 16, 42, 14, tr("gui.ayanamicosmetics.favorite", "Star"), GuiStyledButton.Style.CHIP));
+        this.buttonList.add(new GuiStyledButton(ID_ADD_STACK, px, py, 64, 14, tr("gui.tweakos.add_stack", "+ Stack"), GuiStyledButton.Style.PRIMARY));
+        this.buttonList.add(new GuiStyledButton(ID_REMOVE_STACK, px + 68, py, 64, 14, tr("gui.tweakos.rem_stack", "- Stack"), GuiStyledButton.Style.SECONDARY));
+        this.buttonList.add(new GuiStyledButton(ID_FAVORITE, px, py + 16, 42, 14, tr("gui.tweakos.favorite", "Star"), GuiStyledButton.Style.CHIP));
         this.buttonList.add(new GuiStyledButton(ID_MOVE_UP, px + 46, py + 16, 28, 14, "Up", GuiStyledButton.Style.CHIP));
         this.buttonList.add(new GuiStyledButton(ID_MOVE_DOWN, px + 78, py + 16, 28, 14, "Dn", GuiStyledButton.Style.CHIP));
         this.buttonList.add(new GuiStyledButton(ID_APPLY, px + 110, py + 16, 32, 14, "OK", GuiStyledButton.Style.PRIMARY));
@@ -443,14 +443,16 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawSoftPanel(this.panelX, this.panelY, this.panelW, this.panelH, 0xF0141418, 0xFF2A2A32);
 
         // Title
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.title", "AyanamiCosmetics"), this.panelX + 14, this.panelY - 12, 0xFFE8EAF0, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.title", "TweakOs"), this.panelX + 14, this.panelY - 12, 0xFFE8EAF0, false);
+        String author = tr("gui.tweakos.author", "Created by AyanamiKaede");
+        this.fontRenderer.drawString(author, this.panelX + 14 + this.fontRenderer.getStringWidth(tr("gui.tweakos.title", "TweakOs")) + 8, this.panelY - 12, 0xFF6E7180, false);
         String keyName = KeyHandler.openGuiKey != null ? KeyHandler.openGuiKey.getDisplayName() : "O";
-        String keyHint = tr("gui.ayanamicosmetics.key_hint", "Menu key:") + " " + keyName;
+        String keyHint = tr("gui.tweakos.key_hint", "Menu key:") + " " + keyName;
         this.fontRenderer.drawString(keyHint, this.panelX + this.panelW - 8 - this.fontRenderer.getStringWidth(keyHint), this.panelY - 12, 0xFF8B8E98, false);
 
         // Search field background
         drawSoftPanel(this.panelX + 10, this.panelY + 10, this.panelW - 20, 20, 0xFF1C1C22, 0xFF3A3A44);
-        String placeholder = tr("gui.ayanamicosmetics.search", "Search packs...");
+        String placeholder = tr("gui.tweakos.search", "Search packs...");
         if (this.searchField != null) {
             if (this.searchField.getText().isEmpty() && !this.searchField.isFocused()) {
                 this.fontRenderer.drawString(placeholder, this.panelX + 16, this.panelY + 16, 0xFF6E7180, false);
@@ -479,7 +481,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawSoftPanel(this.gridX - 2, this.gridY - 2, this.gridW + 4, this.gridH + 4, 0xFF101014, 0xFF2C2C34);
 
         if (this.filteredPacks.isEmpty()) {
-            String empty = tr("gui.ayanamicosmetics.no_packs", "Put any ZIP or folder into resourcepacks/");
+            String empty = tr("gui.tweakos.no_packs", "Put any ZIP or folder into resourcepacks/");
             int w = this.fontRenderer.getStringWidth(empty);
             this.fontRenderer.drawString(empty, this.gridX + (this.gridW - w) / 2, this.gridY + this.gridH / 2 - 4, 0xFFFF8E8E, false);
             return;
@@ -560,9 +562,9 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         drawSoftPanel(this.previewX, this.previewY, this.previewW, this.previewH, 0xFF121218, 0xFF34343E);
 
         String title = this.previewPackName == null || this.previewPackName.isEmpty()
-                ? tr("gui.ayanamicosmetics.pack_missing", "<not selected>")
+                ? tr("gui.tweakos.pack_missing", "<not selected>")
                 : this.previewPackName;
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.preview", "Preview"), this.previewX + 8, this.previewY + 6, 0xFF8B8E98, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.preview", "Preview"), this.previewX + 8, this.previewY + 6, 0xFF8B8E98, false);
 
         drawRect(this.previewX + 28, this.previewY + 18, this.previewX + this.previewW - 28, this.previewY + 70, 0xFF0C0C10);
         if (this.previewLocation != null) {
@@ -570,7 +572,7 @@ public class GuiAyanamiCosmetics extends GuiScreen {
             this.mc.getTextureManager().bindTexture(this.previewLocation);
             drawModalRectWithCustomSizedTexture(this.previewX + 43, this.previewY + 24, 0, 0, 64, 40, 64, 40);
         } else {
-            String noIcon = tr("gui.ayanamicosmetics.no_icon", "No pack.png");
+            String noIcon = tr("gui.tweakos.no_icon", "No pack.png");
             int w = this.fontRenderer.getStringWidth(noIcon);
             this.fontRenderer.drawString(noIcon, this.previewX + (this.previewW - w) / 2, this.previewY + 38, 0xFF6A6A76, false);
         }
@@ -587,14 +589,14 @@ public class GuiAyanamiCosmetics extends GuiScreen {
         File file = ResourcePackManager.resolvePackFileByName(this.previewPackName);
         String type = file == null ? "?" : (file.isDirectory() ? "Folder" : "ZIP");
         boolean fav = this.previewPackName != null && Config.isFavorite(this.previewPackName);
-        this.fontRenderer.drawString(tr("gui.ayanamicosmetics.type", "Type:") + " " + type + (fav ? " *" : ""), this.previewX + 8, this.previewY + 88, 0xFFA0A4B0, false);
+        this.fontRenderer.drawString(tr("gui.tweakos.type", "Type:") + " " + type + (fav ? " *" : ""), this.previewX + 8, this.previewY + 88, 0xFFA0A4B0, false);
 
         String host = ResourcePackManager.getCurrentServerHost();
-        String hostLine = host == null ? tr("gui.ayanamicosmetics.no_server", "Not on a server") : ("IP: " + host);
+        String hostLine = host == null ? tr("gui.tweakos.no_server", "Not on a server") : ("IP: " + host);
         this.fontRenderer.drawString(hostLine, this.previewX + 8, this.previewY + 100, 0xFF8DFFB0, false);
 
         java.util.List<String> stack = Config.getActivePacks();
-        String stackLabel = tr("gui.ayanamicosmetics.stack", "Stack:") + " " + stack.size();
+        String stackLabel = tr("gui.tweakos.stack", "Stack:") + " " + stack.size();
         this.fontRenderer.drawString(stackLabel, this.previewX + 8, this.previewY + 112, 0xFFB8CCFF, false);
         int sy = this.previewY + 124;
         for (int i = 0; i < Math.min(stack.size(), 2); i++) {

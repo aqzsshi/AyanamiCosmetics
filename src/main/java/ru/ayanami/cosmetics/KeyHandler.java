@@ -18,14 +18,14 @@ public class KeyHandler {
 
     public static void init() {
         openGuiKey = new KeyBinding(
-                "key.ayanamicosmetics.opengui",
+                "key.tweakos.opengui",
                 Keyboard.KEY_O,
-                "key.categories.ayanamicosmetics"
+                "key.categories.tweakos"
         );
         toggleOverrideKey = new KeyBinding(
-                "key.ayanamicosmetics.toggle",
+                "key.tweakos.toggle",
                 Keyboard.KEY_P,
-                "key.categories.ayanamicosmetics"
+                "key.categories.tweakos"
         );
         ClientRegistry.registerKeyBinding(openGuiKey);
         ClientRegistry.registerKeyBinding(toggleOverrideKey);
@@ -51,7 +51,7 @@ public class KeyHandler {
             mc.displayGuiScreen(new GuiCosmeticsMenu(null));
         } else if (mc.currentScreen instanceof GuiCosmeticsMenu) {
             mc.displayGuiScreen(null);
-        } else if (mc.currentScreen instanceof GuiAyanamiCosmetics) {
+        } else if (mc.currentScreen instanceof GuiTweakOs) {
             mc.displayGuiScreen(null);
         }
     }

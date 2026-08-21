@@ -45,7 +45,7 @@ public class ClientEvents {
 
     @SubscribeEvent
     public void onClientConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
-        AyanamiCosmetics.LOGGER.info("[AyanamiCosmetics] Client connected; waiting for server resource pack if any");
+        TweakOs.LOGGER.info("[TweakOs] Client connected; waiting for server resource pack if any");
         // Delay so ServerData / server RP handshake can settle.
         profileDelayTicks = 40;
         Minecraft.getMinecraft().addScheduledTask(new Runnable() {
